@@ -1,16 +1,3 @@
-/******************************************************************************
- *   Copyright (C) 2019 GSI Helmholtzzentrum für Schwerionenforschung GmbH    *
- *   Copyright (C) 2019-2024 Members of R3B Collaboration                     *
- *                                                                            *
- *             This software is distributed under the terms of the            *
- *                 GNU General Public Licence (GPL) version 3,                *
- *                    copied verbatim in the file "LICENSE".                  *
- *                                                                            *
- * In applying this license GSI does not waive the privileges and immunities  *
- * granted to it by virtue of its status as an Intergovernmental Organization *
- * or submit itself to any jurisdiction.                                      *
- ******************************************************************************/
-
 #include "R3BNeulandDigitizer.h"
 #include "FairLogger.h"
 #include "FairRootManager.h"
@@ -28,14 +15,14 @@
 #include <stdexcept>
 #include <utility>
 
-R3BNeulandDigitizer::R3BNeulandDigitizer(TString input, TString output)
-    : R3BNeulandDigitizer(Digitizing::CreateEngine(UsePaddle<NeulandPaddle>(), UseChannel<TacquilaChannel>()),
+R3BNeulandDigitizerCalDat::R3BNeulandDigitizerCalDat(TString input, TString output)
+    : R3BNeulandDigitizer(Digitizing::CreateEngine(UsePaddle<NeulandPaddle>(), UseChannel<MuonChannel>()),
                           std::move(input),
                           std::move(output))
 {
 }
 
-R3BNeulandDigitizer::R3BNeulandDigitizer(std::unique_ptr<Digitizing::DigitizingEngineInterface> engine,
+R3BNeulandDigitizerCalDat::R3BNeulandDigitizerCalDat(std::unique_ptr<Digitizing::DigitizingEngineInterface> engine,
                                          TString input,
                                          TString output)
     : FairTask("R3BNeulandDigitizer")
@@ -43,11 +30,6 @@ R3BNeulandDigitizer::R3BNeulandDigitizer(std::unique_ptr<Digitizing::DigitizingE
     , fHits(std::move(output))
     , fDigitizingEngine(std::move(engine))
 {
-}
-
-void R3BNeulandDigitizer::SetEngine(std::unique_ptr<Digitizing::DigitizingEngineInterface> engine)
-{
-    fDigitizingEngine = std::move(engine);
 }
 
 void R3BNeulandDigitizer::SetParContainers()
@@ -89,7 +71,6 @@ InitStatus R3BNeulandDigitizer::Init()
 
     return kSUCCESS;
 }
-
 void R3BNeulandDigitizer::Exec(Option_t* /*option*/)
 {
     fHits.Reset();
@@ -139,23 +120,17 @@ void R3BNeulandDigitizer::Exec(Option_t* /*option*/)
             continue;
         }
 
-        auto signals = paddle->GetSignals();
+        auto signals = paddle->GetSignals(true); //get channel
 
-        for (const auto& signal : signals)
+        for (const auto signal : signals)
         {
-            const TVector3 hitPositionLocal = TVector3(signal.position, 0., 0.);
-            const TVector3 hitPositionGlobal = fNeulandGeoPar->ConvertToGlobalCoordinates(hitPositionLocal, paddleID);
-            const TVector3 hitPixel = fNeulandGeoPar->ConvertGlobalToPixel(hitPositionGlobal);
 
-            R3BNeulandHit hit(paddleID,
-                              signal.leftChannel.tdc,
-                              signal.rightChannel.tdc,
+            R3BCalData hit(paddleID,
+                              signal.leftChannel.tot,
+                              signal.rightChannel.tot,
                               signal.time,
-                              signal.leftChannel.qdcUnSat,
-                              signal.rightChannel.qdcUnSat,
-                              signal.energy,
-                              hitPositionGlobal,
-                              hitPixel);
+                              signal.leftChannel.tle,
+                              signal.rightChannel.tle);
 
             if (fHitFilters.IsValid(hit))
             {
@@ -169,18 +144,3 @@ void R3BNeulandDigitizer::Exec(Option_t* /*option*/)
     LOG(debug) << "R3BNeulandDigitizer: produced " << fHits.Size() << " hits";
 }
 
-void R3BNeulandDigitizer::Finish()
-{
-    TDirectory* tmp = gDirectory;
-    FairRootManager::Instance()->GetOutFile()->cd();
-
-    gDirectory->mkdir("R3BNeulandDigitizer");
-    gDirectory->cd("R3BNeulandDigitizer");
-
-    hMultOne->Write();
-    hMultTwo->Write();
-
-    gDirectory = tmp;
-}
-
-ClassImp(R3BNeulandDigitizer); // NOLINT

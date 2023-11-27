@@ -1,3 +1,4 @@
+
 /******************************************************************************
  *   Copyright (C) 2019 GSI Helmholtzzentrum für Schwerionenforschung GmbH    *
  *   Copyright (C) 2019-2024 Members of R3B Collaboration                     *
@@ -11,7 +12,7 @@
  * or submit itself to any jurisdiction.                                      *
  ******************************************************************************/
 
-#include "R3BNeulandDigitizer.h"
+#include "R3BNeulandDigitizerCalData.h"
 #include "FairLogger.h"
 #include "FairRootManager.h"
 #include "FairRunAna.h"
@@ -22,58 +23,61 @@
 #include "TH2F.h"
 #include "TMath.h"
 #include "TString.h"
+#include <R3BCalData.h>
 #include <R3BShared.h>
 #include <TFile.h>
 #include <iostream>
 #include <stdexcept>
 #include <utility>
+#include <range/v3/view.hpp>
 
-R3BNeulandDigitizer::R3BNeulandDigitizer(TString input, TString output)
-    : R3BNeulandDigitizer(Digitizing::CreateEngine(UsePaddle<NeulandPaddle>(), UseChannel<TacquilaChannel>()),
+
+R3BNeulandDigitizerCalTask::R3BNeulandDigitizerCalTask(TString input, TString output)
+    : R3BNeulandDigitizerCalTask(Digitizing::CreateEngine(UsePaddle<NeulandPaddle>(), UseChannel<TacquilaChannel>()),
                           std::move(input),
                           std::move(output))
 {
 }
 
-R3BNeulandDigitizer::R3BNeulandDigitizer(std::unique_ptr<Digitizing::DigitizingEngineInterface> engine,
+R3BNeulandDigitizerCalTask::R3BNeulandDigitizerCalTask(std::unique_ptr<Digitizing::DigitizingEngineInterface> engine,
                                          TString input,
                                          TString output)
-    : FairTask("R3BNeulandDigitizer")
+    : FairTask("R3BNeulandDigitizerCalData")
     , fPoints(std::move(input))
     , fHits(std::move(output))
     , fDigitizingEngine(std::move(engine))
 {
 }
 
-void R3BNeulandDigitizer::SetEngine(std::unique_ptr<Digitizing::DigitizingEngineInterface> engine)
+void R3BNeulandDigitizerCalTask::SetEngine(std::unique_ptr<Digitizing::DigitizingEngineInterface> engine)
 {
     fDigitizingEngine = std::move(engine);
 }
 
-void R3BNeulandDigitizer::SetParContainers()
+void R3BNeulandDigitizerCalTask::SetParContainers()
 {
     FairRunAna* run = FairRunAna::Instance();
     if (run == nullptr)
     {
-        LOG(fatal) << "R3BNeulandDigitizer::SetParContainers: No analysis run";
+        LOG(fatal) << "R3BNeulandDigitizerCalData::SetParContainers: No analysis run";
     }
 
     FairRuntimeDb* rtdb = run->GetRuntimeDb();
     if (rtdb == nullptr)
     {
-        LOG(fatal) << "R3BNeulandDigitizer::SetParContainers: No runtime database";
+        LOG(fatal) << "R3BNeulandDigitizerCalData::SetParContainers: No runtime database";
     }
 
     fNeulandGeoPar = dynamic_cast<R3BNeulandGeoPar*>(rtdb->getContainer("R3BNeulandGeoPar"));
     if (fNeulandGeoPar == nullptr)
     {
-        LOG(fatal) << "R3BNeulandDigitizer::SetParContainers: No R3BNeulandGeoPar";
+        LOG(fatal) << "R3BNeulandDigitizerCalData::SetParContainers: No R3BNeulandGeoPar";
     }
 
     fDigitizingEngine->Init();
 }
 
-InitStatus R3BNeulandDigitizer::Init()
+InitStatus R3BNeulandDigitizerCalTask::Init()
 {
     fPoints.Init();
     fHits.Init();
@@ -90,7 +94,7 @@ InitStatus R3BNeulandDigitizer::Init()
     return kSUCCESS;
 }
 
-void R3BNeulandDigitizer::Exec(Option_t* /*option*/)
+void R3BNeulandDigitizerCalTask::Exec(Option_t* /*option*/)
 {
     fHits.Reset();
     const auto GeVToMeVFac = 1000.;
@@ -139,43 +143,39 @@ void R3BNeulandDigitizer::Exec(Option_t* /*option*/)
             continue;
         }
 
-        auto signals = paddle->GetSignals();
+        auto& left_channel = paddle->GetLeftChannelRef();
+        auto& right_channel = paddle->GetRightChannelRef();
 
-        for (const auto& signal : signals)
+        auto left_channel_signals = left_channel.GetCalSignals();
+        auto right_channel_signals = right_channel.GetCalSignals();
+
+            for(const auto& [left, right] : ranges::zip_view(left_channel_signals, right_channel_signals))
         {
-            const TVector3 hitPositionLocal = TVector3(signal.position, 0., 0.);
-            const TVector3 hitPositionGlobal = fNeulandGeoPar->ConvertToGlobalCoordinates(hitPositionLocal, paddleID);
-            const TVector3 hitPixel = fNeulandGeoPar->ConvertGlobalToPixel(hitPositionGlobal);
 
-            R3BNeulandHit hit(paddleID,
-                              signal.leftChannel.tdc,
-                              signal.rightChannel.tdc,
-                              signal.time,
-                              signal.leftChannel.qdcUnSat,
-                              signal.rightChannel.qdcUnSat,
-                              signal.energy,
-                              hitPositionGlobal,
-                              hitPixel);
+            auto cal_data = R3B::Neuland::CalData{ paddleID,
+                                               left.tot,
+                                               right.tot,
+                                               left.tle,
+                                               right.tle };
 
-            if (fHitFilters.IsValid(hit))
+            if (fHitFilters.IsValid(cal_data))
             {
-                fHits.Insert(std::move(hit));
-                LOG(debug) << "Adding neuland hit with id = " << paddleID << ", time = " << signal.time
-                           << ", energy = " << signal.energy;
+                fHits.Insert(std::move(cal_data));
+                LOG(debug) << "Adding neuland cal with id = " << paddleID;
             }
         } // loop over all hits for each paddle
     }     // loop over paddles
 
-    LOG(debug) << "R3BNeulandDigitizer: produced " << fHits.Size() << " hits";
+    LOG(debug) << "R3BNeulandDigitizerCalData: produced " << fHits.Size() << " hits";
 }
 
-void R3BNeulandDigitizer::Finish()
+void R3BNeulandDigitizerCalTask::Finish()
 {
     TDirectory* tmp = gDirectory;
     FairRootManager::Instance()->GetOutFile()->cd();
 
-    gDirectory->mkdir("R3BNeulandDigitizer");
-    gDirectory->cd("R3BNeulandDigitizer");
+    gDirectory->mkdir("R3BNeulandDigitizerCalData");
+    gDirectory->cd("R3BNeulandDigitizerCalData");
 
     hMultOne->Write();
     hMultTwo->Write();
@@ -183,4 +183,4 @@ void R3BNeulandDigitizer::Finish()
     gDirectory = tmp;
 }
 
-ClassImp(R3BNeulandDigitizer); // NOLINT
+ClassImp(R3BNeulandDigitizerCalTask); // NOLINT

@@ -113,6 +113,26 @@ namespace R3B::Digitizing
         return fSignals.getRef();
     }
 
+    auto Paddle::GetSignals(bool JustCalData) const -> const Signals&
+    {
+        if (!fSignals.valid())
+        {
+            if (HasFired())
+            {
+                fLeftChannel->SetJustCalData(JustCalData);
+                fRightChannel->SetJustCalData(JustCalData);
+                auto signals = ConstructPaddelSignals(fLeftChannel->GetSignals(), fRightChannel->GetSignals());
+                fSignals.set(std::move(signals));
+            }
+            else
+            {
+                fSignals.set({});
+            }
+        }
+
+        return fSignals.getRef();
+    }
+
     auto Paddle::SignalCouplingByTime(const Channel::Signals& firstSignals, const Channel::Signals& secondSignals)
         -> std::vector<ChannelSignalPair>
     {

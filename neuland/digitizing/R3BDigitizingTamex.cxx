@@ -246,6 +246,42 @@ namespace R3B::Digitizing::Neuland::Tamex
         return signal;
     }
 
+    auto Channel::CreateCalSignal(const FQTPeak& peak) const -> CalSignal
+    {
+        auto peakQdc = peak.GetQDC();
+        auto peakTime = peak.GetLETime();
+        auto qdc = ToQdc(peakQdc);
+
+        auto signal = CalSignal{};
+        signal.tot = CalculateTOT(qdc);
+        signal.tle = peakTime;
+        signal.side = this->GetSide();
+        LOG(debug) << "R3BDigitizingTamex: Create a Cal signal with time over threshold " << signal.tot
+                   << " and leading edge time " << signal.tle << std::endl;
+        return signal;
+    }
+
+    auto Channel::CalculateTOT(const double& qdc) const -> double
+    {
+        // ToDo: Decide if ERROR stuff is needed
+        //  if (GetErrorCalculation())
+        //  {
+        //      ValueError<double> qdc_err_val{ qdc, 0 };
+        //      auto par_err_val = GetParErrVal();
+        //      auto tot_err_val = qdc_err_val * par_err_val.energyGain + par_err_val.pedestal;
+        //      auto randGen = GetDefaultRandomGen();
+        //      return randGen.Gaus(tot_err_val.value, tot_err_val.error);
+        //  }
+        //  else {
+        //
+        //      auto par = GetParConstRef();
+        //      return (qdc * par.fEnergyGain + par.fPedestal);
+        //  }
+
+        auto par = GetParConstRef();
+        return (qdc * par.fEnergyGain + par.fPedestal);
+    }
+
     template <typename Peak>
     void Channel::PeakPileUp(/* inout */ std::vector<Peak>& peaks)
     {
@@ -383,12 +419,47 @@ namespace R3B::Digitizing::Neuland::Tamex
         return signals;
     }
 
+    auto Channel::ConstructCalSignals() -> CalSignals
+    {
+        fqt_peaks_ = ConstructFQTPeaks(pmt_peaks_);
+        // signal pileup:
+        FQTPeakPileUp(fqt_peaks_);
+
+        // construct Channel signals:
+        auto cal_signals = std::vector<CalSignal>{};
+        cal_signals.reserve(fqt_peaks_.size());
+
+        for (const auto& peak : fqt_peaks_)
+        {
+            cal_signals.emplace_back(CreateCalSignal(peak));
+        }
+        return cal_signals;
+    }
+
+    auto Channel::GetCalSignals() ->  CalSignals 
+
+    {
+        return ConstructCalSignals();
+    }
+
+    //Paula: if statements delete i think
     auto Channel::GetFQTPeaks() -> const std::vector<FQTPeak>&
     {
 
         if (!Is_ValidSignals())
         {
-            ConstructSignals();
+            /*             ConstructSignals(); */
+
+            auto JustCalData =GetJustCalData();
+
+            if (JustCalData == true)
+            {
+                ConstructCalSignals();
+            }
+            else
+            {
+                ConstructSignals();
+            }
         }
         return fqt_peaks_;
     }
@@ -397,7 +468,18 @@ namespace R3B::Digitizing::Neuland::Tamex
     {
         if (!Is_ValidSignals())
         {
-            ConstructSignals();
+            /*             ConstructSignals(); */
+
+            auto JustCalData =GetJustCalData();
+
+            if (JustCalData == true)
+            {
+                ConstructCalSignals();
+            }
+            else
+            {
+                ConstructSignals();
+            }
         }
         return pmt_peaks_;
     }

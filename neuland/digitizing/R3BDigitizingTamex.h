@@ -147,16 +147,24 @@ namespace R3B::Digitizing::Neuland::Tamex
         }
         // Setters:
         void SetPileUpStrategy(PeakPileUpStrategy strategy) { pileup_strategy_ = strategy; }
+        auto SetHitModulPar(R3B::Neuland::HitModulePar hit_module_par)
+        {
+            hit_module_par_ = hit_module_par;
+        } // Added for qdc in time
 
         // Getters:
         auto GetPar() -> Tamex::Params& { return par_; }
         auto GetParConstRef() const -> const Tamex::Params& { return par_; }
         auto GetFQTPeaks() -> const std::vector<FQTPeak>&;
         auto GetPMTPeaks() -> const std::vector<PMTPeak>&;
+        auto GetCalSignals()  -> CalSignals override;
 
         void AddHit(Hit /*hit*/) override;
         auto CreateSignal(const FQTPeak& peak) const -> Signal;
+        auto CreateCalSignal(const FQTPeak& peak) const -> CalSignal;
         static void GetHitPar(const std::string& hitParName);
+
+        auto GetHitModulePar() const -> R3B::Neuland::HitModulePar { return hit_module_par_; } // Added for qdc in time
 
       private:
         PeakPileUpStrategy pileup_strategy_ = PeakPileUpStrategy::width;
@@ -166,8 +174,11 @@ namespace R3B::Digitizing::Neuland::Tamex
         R3BNeulandHitModulePar* neuland_hit_module_par_ = nullptr;
         Tamex::Params par_;
 
+        R3B::Neuland::HitModulePar hit_module_par_; // Added for qdc in time
+
         // private virtual functions
         auto ConstructSignals() -> Signals override;
+        auto ConstructCalSignals() -> CalSignals override;
         void AttachToPaddle(Digitizing::Paddle* paddle) override;
 
         // private non-virtual functions
@@ -186,6 +197,7 @@ namespace R3B::Digitizing::Neuland::Tamex
         static void PeakPileUpWithDistance(/* inout */ std::vector<FQTPeak>& peaks, double distance);
         static void PeakPileUpInTimeWindow(/* inout */ std::vector<FQTPeak>& peaks, double time_window);
         void FQTPeakPileUp(/* inout */ std::vector<FQTPeak>& peaks);
+        auto CalculateTOT(const double& qdc) const -> double;
     };
 
 } // namespace R3B::Digitizing::Neuland::Tamex

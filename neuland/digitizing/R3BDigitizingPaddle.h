@@ -16,6 +16,7 @@
 
 #include "R3BDigitizingChannel.h"
 #include <R3BLogger.h>
+#include <R3BNeulandCalToHitPar.h>
 #include <RtypesCore.h>
 #include <functional>
 #include <memory>
@@ -39,9 +40,18 @@ namespace R3B::Digitizing
         double energy{};
         double time{};
         double position{};
-        const Channel::Signal& leftChannel;
-        const Channel::Signal& rightChannel;
-        explicit PaddleSignal(LRPair<const Channel::Signal&> p_signals)
+        const Channel::Signal leftChannel;
+        const Channel::Signal rightChannel;
+         Channel::CalSignal leftChannelCal;
+         Channel::CalSignal rightChannelCal;
+
+        explicit PaddleSignal(LRPair<const Channel::CalSignal> p_signals)
+            : leftChannelCal{ p_signals.left }
+            , rightChannelCal{ p_signals.right }
+        {
+        }
+
+        explicit PaddleSignal(LRPair<const Channel::Signal> p_signals)
             : leftChannel{ p_signals.left }
             , rightChannel{ p_signals.right }
         {
@@ -86,6 +96,7 @@ namespace R3B::Digitizing
         // Getters:
         auto GetPaddleID() const -> int { return fPaddleID; }
         auto GetSignals() const -> const std::vector<Signal>&;
+        auto GetSignals(bool JustCalData) const -> const std::vector<Signal>&;
         auto GetSignalCouplingStragtegy() const -> const SignalCouplingStrategy& { return fSignalCouplingStrategy; }
         auto GetLeftChannel() const -> const Channel* { return fLeftChannel.get(); }
         auto& GetLeftChannelRef() { return *fLeftChannel; }
@@ -99,6 +110,7 @@ namespace R3B::Digitizing
         std::unique_ptr<Channel> fLeftChannel{};
         std::unique_ptr<Channel> fRightChannel{};
         SignalCouplingStrategy fSignalCouplingStrategy;
+
         // virtual std::function<indexMapFunc> IndexMapFunc() const { return ConstructIndexMapByTime; }
         virtual auto ConstructPaddelSignals(const Channel::Signals& firstSignals,
                                             const Channel::Signals& secondSignals) const -> Signals;
