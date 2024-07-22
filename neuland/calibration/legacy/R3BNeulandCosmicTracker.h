@@ -35,7 +35,6 @@ namespace R3B::Neuland // NOLINT
           public:
             explicit CosmicTracker(int number_of_planes = MaxNumberOfPlanes);
 
-
             void SetDistances(const std::vector<Double_t>& distances) { fDistances = distances; }
             void AddPoint(const Int_t barID, const Double_t pos = NaN);
             auto GetBarIDs() -> const auto& { return fBarIDs; }

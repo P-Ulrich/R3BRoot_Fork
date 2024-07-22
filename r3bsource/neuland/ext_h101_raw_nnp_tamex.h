@@ -5,6 +5,7 @@
  * Do not edit - automatically generated.
  */
 
+// clang-format off
 #ifndef __GUARD_H101_RAW_NNP_TAMEX_EXT_H101_RAW_NNP_TAMEX_H__
 #define __GUARD_H101_RAW_NNP_TAMEX_EXT_H101_RAW_NNP_TAMEX_H__
 
@@ -7777,4 +7778,5 @@ typedef struct EXT_STR_h101_raw_nnp_tamex_onion_t
 
 #endif/*__GUARD_H101_RAW_NNP_TAMEX_EXT_H101_RAW_NNP_TAMEX_H__*/
 
+// clang-format on
 /*******************************************************/
