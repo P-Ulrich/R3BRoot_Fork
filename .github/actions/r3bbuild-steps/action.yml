@@ -24,7 +24,7 @@ runs:
     - name: cmake configure ${{ matrix.repos }}
       run: |
         git config --global --add safe.directory $GITHUB_WORKSPACE
-        git submodule udpate --init --recursive
+        git submodule update --init --recursive
         git clone https://github.com/R3BRootGroup/macros.git
         echo ""
         echo "path environment variable: $PATH\n"
