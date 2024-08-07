@@ -84,17 +84,14 @@ namespace R3B::Digitizing
         // Getters:
         virtual auto GetTrigTime() -> double;
         auto GetSignals() -> const Signals&;
-        // auto GetCalSignals() -> const CalSignals&;
         auto GetSide() const -> ChannelSide { return fSide; }
         auto GetPaddle() const -> Paddle* { return fPaddle; }
-        auto GetJustCalData() const -> bool { return JustCalData_; }
         virtual auto GetCalSignals()  ->  CalSignals
         {
             auto virtual_sig = CalSignals{};
             return virtual_sig;
         }
 
-        void SetJustCalData(bool JustCalData) { JustCalData_ = JustCalData; }
         void SetPaddle(Paddle* v_paddle) { fPaddle = v_paddle; }
         auto Is_ValidSignals() -> bool { return fSignals.valid(); }
         auto Is_ValidCalSignals() -> bool { return fCalSignals.valid(); }
@@ -116,6 +113,5 @@ namespace R3B::Digitizing
         mutable Validated<Signals> fSignals;       // output signals from the channel
         mutable Validated<CalSignals> fCalSignals; // output cal signals from the channel
         mutable Validated<double> fTrigTime;
-        mutable bool JustCalData_{ false };
     };
 } // namespace R3B::Digitizing

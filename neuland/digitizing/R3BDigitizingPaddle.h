@@ -96,7 +96,6 @@ namespace R3B::Digitizing
         // Getters:
         auto GetPaddleID() const -> int { return fPaddleID; }
         auto GetSignals() const -> const std::vector<Signal>&;
-        auto GetSignals(bool JustCalData) const -> const std::vector<Signal>&;
         auto GetSignalCouplingStragtegy() const -> const SignalCouplingStrategy& { return fSignalCouplingStrategy; }
         auto GetLeftChannel() const -> const Channel* { return fLeftChannel.get(); }
         auto& GetLeftChannelRef() { return *fLeftChannel; }

@@ -442,24 +442,12 @@ namespace R3B::Digitizing::Neuland::Tamex
         return ConstructCalSignals();
     }
 
-    //Paula: if statements delete i think
     auto Channel::GetFQTPeaks() -> const std::vector<FQTPeak>&
     {
 
         if (!Is_ValidSignals())
         {
-            /*             ConstructSignals(); */
-
-            auto JustCalData =GetJustCalData();
-
-            if (JustCalData == true)
-            {
-                ConstructCalSignals();
-            }
-            else
-            {
-                ConstructSignals();
-            }
+             ConstructSignals(); 
         }
         return fqt_peaks_;
     }
@@ -468,18 +456,7 @@ namespace R3B::Digitizing::Neuland::Tamex
     {
         if (!Is_ValidSignals())
         {
-            /*             ConstructSignals(); */
-
-            auto JustCalData =GetJustCalData();
-
-            if (JustCalData == true)
-            {
-                ConstructCalSignals();
-            }
-            else
-            {
-                ConstructSignals();
-            }
+             ConstructSignals(); 
         }
         return pmt_peaks_;
     }

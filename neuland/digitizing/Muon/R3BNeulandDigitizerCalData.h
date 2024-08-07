@@ -32,17 +32,7 @@ class TGeoNode;
 class TH1F;
 class TH2F;
 
-/**
- * NeuLAND digitizing finder task
- * @author Jan Mayer
- *
- * For each event, get the R3BNeulandPoints and apply the detector response to create R3B::Neuland::CalDatas.
- *   Input:  Branch NeulandPoints = TClonesArray("R3BNeulandPoint")
- *           Stored Neuland Geometry Parameter NeulandGeoPar
- *   Output: Branch NeulandHits  = TClonesArray("R3BNeulandDigi")
- *   Additional output: Some control histograms
- *
- */
+
 namespace R3B::Neuland
 {
 

@@ -27,34 +27,16 @@ namespace R3B::Digitizing
         return random3;
     }
 
-    // ToDo: Add a flag in which constructcalsignals will be called instead of constructSignals
     auto Channel::GetSignals() -> const Signals&
     {
         if (!fSignals.valid())
         {
-            if (JustCalData_==true)
-            {
-                fCalSignals.set(ConstructCalSignals());
-            }
-            else
-            {
-                fSignals.set(ConstructSignals());
-            }
+            fSignals.set(ConstructSignals());
         }
         return fSignals.getRef();
     }
 
-    // auto Channel::GetCalSignals() -> const CalSignals&
-    // {
-    //     if (!fCalSignals.valid())
-    //     {
-    //         fCalSignals.set(ConstructCalSignals());
-    //     }
-    //     return fCalSignals.getRef();
-    // }
-
     auto Channel::HasFired() -> bool { return (!GetSignals().empty()); }
-/*     auto Channel::HasCalFired() -> bool { return (!GetCalSignals().empty()); } */
 
     auto Channel::GetTrigTime() -> double
     {

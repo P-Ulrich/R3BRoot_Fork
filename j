@@ -1,0 +1,1388 @@
+[1mdiff --git a/neuland/digitizing/CMakeLists.txt b/neuland/digitizing/CMakeLists.txt[m
+[1mindex 78038d8e..42dc2a0c 100644[m
+[1m--- a/neuland/digitizing/CMakeLists.txt[m
+[1m+++ b/neuland/digitizing/CMakeLists.txt[m
+[36m@@ -21,7 +21,10 @@[m [mset(SRCS[m
+     R3BDigitizingTacQuila.cxx[m
+     R3BDigitizingTamex.cxx[m
+     R3BNeulandDigitizer.cxx[m
+[31m-    R3BNeulandHitMon.cxx)[m
+[32m+[m[32m    R3BNeulandHitMon.cxx[m
+[32m+[m[32m    Muon/R3BNeulandDigitizerCalData.cxx[m
+[32m+[m[32m    )[m
+[32m+[m
+ [m
+ set(HEADERS[m
+     # cmake-format: sortable[m
+[36m@@ -34,7 +37,10 @@[m [mset(HEADERS[m
+     R3BDigitizingTacQuila.h[m
+     R3BDigitizingTamex.h[m
+     R3BNeulandDigitizer.h[m
+[31m-    R3BNeulandHitMon.h)[m
+[32m+[m[32m    R3BNeulandHitMon.h[m
+[32m+[m[32m    Muon/R3BNeulandDigitizerCalData.h[m
+[32m+[m[32m    )[m
+[32m+[m
+ [m
+ add_library_with_dictionary([m
+     LIBNAME[m
+[36m@@ -45,7 +51,9 @@[m [madd_library_with_dictionary([m
+     ${SRCS}[m
+     INCLUDEDIRS[m
+     ${CMAKE_CURRENT_SOURCE_DIR}[m
+[32m+[m[32m    ${CMAKE_CURRENT_SOURCE_DIR}/Muon[m
+     HEADERS[m
+     ${HEADERS}[m
+     DEPENDENCIES[m
+[31m-    R3BNeulandCalibration)[m
+[32m+[m[32m    R3BNeulandCalibration[m
+[32m+[m[32m    range-v3::range-v3)[m
+[1mdiff --git a/neuland/digitizing/Muon/R3BNeulandDigitizerCalData.cxx b/neuland/digitizing/Muon/R3BNeulandDigitizerCalData.cxx[m
+[1mnew file mode 100644[m
+[1mindex 00000000..66efd2bb[m
+[1m--- /dev/null[m
+[1m+++ b/neuland/digitizing/Muon/R3BNeulandDigitizerCalData.cxx[m
+[36m@@ -0,0 +1,186 @@[m
+[32m+[m
+[32m+[m[32m/******************************************************************************[m
+[32m+[m[32m *   Copyright (C) 2019 GSI Helmholtzzentrum für Schwerionenforschung GmbH    *[m
+[32m+[m[32m *   Copyright (C) 2019-2024 Members of R3B Collaboration                     *[m
+[32m+[m[32m *                                                                            *[m
+[32m+[m[32m *             This software is distributed under the terms of the            *[m
+[32m+[m[32m *                 GNU General Public Licence (GPL) version 3,                *[m
+[32m+[m[32m *                    copied verbatim in the file "LICENSE".                  *[m
+[32m+[m[32m *                                                                            *[m
+[32m+[m[32m * In applying this license GSI does not waive the privileges and immunities  *[m
+[32m+[m[32m * granted to it by virtue of its status as an Intergovernmental Organization *[m
+[32m+[m[32m * or submit itself to any jurisdiction.                                      *[m
+[32m+[m[32m ******************************************************************************/[m
+[32m+[m
+[32m+[m[32m#include "R3BNeulandDigitizerCalData.h"[m
+[32m+[m[32m#include "FairLogger.h"[m
+[32m+[m[32m#include "FairRootManager.h"[m
+[32m+[m[32m#include "FairRunAna.h"[m
+[32m+[m[32m#include "FairRuntimeDb.h"[m
+[32m+[m[32m#include "TGeoManager.h"[m
+[32m+[m[32m#include "TGeoNode.h"[m
+[32m+[m[32m#include "TH1F.h"[m
+[32m+[m[32m#include "TH2F.h"[m
+[32m+[m[32m#include "TMath.h"[m
+[32m+[m[32m#include "TString.h"[m
+[32m+[m[32m#include <R3BCalData.h>[m
+[32m+[m[32m#include <R3BShared.h>[m
+[32m+[m[32m#include <TFile.h>[m
+[32m+[m[32m#include <iostream>[m
+[32m+[m[32m#include <stdexcept>[m
+[32m+[m[32m#include <utility>[m
+[32m+[m[32m#include <range/v3/view.hpp>[m
+[32m+[m
+[32m+[m
+[32m+[m[32mR3BNeulandDigitizerCalTask::R3BNeulandDigitizerCalTask(TString input, TString output)[m
+[32m+[m[32m    : R3BNeulandDigitizerCalTask(Digitizing::CreateEngine(UsePaddle<NeulandPaddle>(), UseChannel<TacquilaChannel>()),[m
+[32m+[m[32m                          std::move(input),[m
+[32m+[m[32m                          std::move(output))[m
+[32m+[m[32m{[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mR3BNeulandDigitizerCalTask::R3BNeulandDigitizerCalTask(std::unique_ptr<Digitizing::DigitizingEngineInterface> engine,[m
+[32m+[m[32m                                         TString input,[m
+[32m+[m[32m                                         TString output)[m
+[32m+[m[32m    : FairTask("R3BNeulandDigitizerCalData")[m
+[32m+[m[32m    , fPoints(std::move(input))[m
+[32m+[m[32m    , fHits(std::move(output))[m
+[32m+[m[32m    , fDigitizingEngine(std::move(engine))[m
+[32m+[m[32m{[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mvoid R3BNeulandDigitizerCalTask::SetEngine(std::unique_ptr<Digitizing::DigitizingEngineInterface> engine)[m
+[32m+[m[32m{[m
+[32m+[m[32m    fDigitizingEngine = std::move(engine);[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mvoid R3BNeulandDigitizerCalTask::SetParContainers()[m
+[32m+[m[32m{[m
+[32m+[m[32m    FairRunAna* run = FairRunAna::Instance();[m
+[32m+[m[32m    if (run == nullptr)[m
+[32m+[m[32m    {[m
+[32m+[m[32m        LOG(fatal) << "R3BNeulandDigitizerCalData::SetParContainers: No analysis run";[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    FairRuntimeDb* rtdb = run->GetRuntimeDb();[m
+[32m+[m[32m    if (rtdb == nullptr)[m
+[32m+[m[32m    {[m
+[32m+[m[32m        LOG(fatal) << "R3BNeulandDigitizerCalData::SetParContainers: No runtime database";[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    fNeulandGeoPar = dynamic_cast<R3BNeulandGeoPar*>(rtdb->getContainer("R3BNeulandGeoPar"));[m
+[32m+[m[32m    if (fNeulandGeoPar == nullptr)[m
+[32m+[m[32m    {[m
+[32m+[m[32m        LOG(fatal) << "R3BNeulandDigitizerCalData::SetParContainers: No R3BNeulandGeoPar";[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    fDigitizingEngine->Init();[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mInitStatus R3BNeulandDigitizerCalTask::Init()[m
+[32m+[m[32m{[m
+[32m+[m[32m    fPoints.Init();[m
+[32m+[m[32m    fHits.Init();[m
+[32m+[m
+[32m+[m[32m    // Initialize control histograms[m
+[32m+[m[32m    auto const PaddleMulSize = 3000;[m
+[32m+[m[32m    hMultOne = R3B::root_owned<TH1I>([m
+[32m+[m[32m        "MultiplicityOne", "Paddle multiplicity: only one PMT per paddle", PaddleMulSize, 0, PaddleMulSize);[m
+[32m+[m[32m    hMultTwo = R3B::root_owned<TH1I>([m
+[32m+[m[32m        "MultiplicityTwo", "Paddle multiplicity: both PMTs of a paddle", PaddleMulSize, 0, PaddleMulSize);[m
+[32m+[m[32m    auto const timeBinSize = 200;[m
+[32m+[m[32m    hRLTimeToTrig = R3B::root_owned<TH1F>("hRLTimeToTrig", "R/Ltime-triggerTime", timeBinSize, -100., 100.);[m
+[32m+[m
+[32m+[m[32m    return kSUCCESS;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mvoid R3BNeulandDigitizerCalTask::Exec(Option_t* /*option*/)[m
+[32m+[m[32m{[m
+[32m+[m[32m    fHits.Reset();[m
+[32m+[m[32m    const auto GeVToMeVFac = 1000.;[m
+[32m+[m
+[32m+[m[32m    std::map<UInt_t, Double_t> paddleEnergyDeposit;[m
+[32m+[m[32m    // Look at each Land Point, if it deposited energy in the scintillator, store it with reference to the bar[m
+[32m+[m[32m    for (const auto& point : fPoints.Retrieve())[m
+[32m+[m[32m    {[m
+[32m+[m[32m        if (point->GetEnergyLoss() > 0.)[m
+[32m+[m[32m        {[m
+[32m+[m[32m            const Int_t paddleID = point->GetPaddle();[m
+[32m+[m
+[32m+[m[32m            // Convert position of point to paddle-coordinates, including any rotation or translation[m
+[32m+[m[32m            const TVector3 position = point->GetPosition();[m
+[32m+[m[32m            const TVector3 converted_position = fNeulandGeoPar->ConvertToLocalCoordinates(position, paddleID);[m
+[32m+[m[32m            LOG(debug2) << "NeulandDigitizer: Point in paddle " << paddleID[m
+[32m+[m[32m                        << " with global position XYZ: " << position.X() << " " << position.Y() << " " << position.Z();[m
+[32m+[m[32m            LOG(debug2) << "NeulandDigitizer: Converted to local position XYZ: " << converted_position.X() << " "[m
+[32m+[m[32m                        << converted_position.Y() << " " << converted_position.Z();[m
+[32m+[m
+[32m+[m[32m            // Within the paddle frame, the relevant distance of the light from the pmt is always given by the[m
+[32m+[m[32m            // X-Coordinate[m
+[32m+[m[32m            const Double_t dist = converted_position.X();[m
+[32m+[m[32m            fDigitizingEngine->DepositLight(paddleID, point->GetTime(), point->GetLightYield() * GeVToMeVFac, dist);[m
+[32m+[m[32m            paddleEnergyDeposit[paddleID] += point->GetEnergyLoss() * GeVToMeVFac;[m
+[32m+[m[32m        } // eloss[m
+[32m+[m[32m    }     // points[m
+[32m+[m
+[32m+[m[32m    const Double_t triggerTime = fDigitizingEngine->GetTriggerTime();[m
+[32m+[m[32m    const auto paddles = fDigitizingEngine->ExtractPaddles();[m
+[32m+[m
+[32m+[m[32m    // Fill control histograms[m
+[32m+[m[32m    hMultOne->Fill(static_cast<int>(std::count_if([m
+[32m+[m[32m        paddles.begin(), paddles.end(), [](const auto& keyValue) { return keyValue.second->HasHalfFired(); })));[m
+[32m+[m
+[32m+[m[32m    hMultTwo->Fill(static_cast<int>(std::count_if([m
+[32m+[m[32m        paddles.begin(), paddles.end(), [](const auto& keyValue) { return keyValue.second->HasFired(); })));[m
+[32m+[m
+[32m+[m[32m    hRLTimeToTrig->Fill(triggerTime);[m
+[32m+[m
+[32m+[m[32m    // Create Hits[m
+[32m+[m[32m    for (const auto& [paddleID, paddle] : paddles)[m
+[32m+[m[32m    {[m
+[32m+[m[32m        if (!paddle->HasFired())[m
+[32m+[m[32m        {[m
+[32m+[m[32m            continue;[m
+[32m+[m[32m        }[m
+[32m+[m
+[32m+[m[32m        auto& left_channel = paddle->GetLeftChannelRef();[m
+[32m+[m[32m        auto& right_channel = paddle->GetRightChannelRef();[m
+[32m+[m
+[32m+[m[32m        auto left_channel_signals = left_channel.GetCalSignals();[m
+[32m+[m[32m        auto right_channel_signals = right_channel.GetCalSignals();[m
+[32m+[m
+[32m+[m[32m            for(const auto& [left, right] : ranges::zip_view(left_channel_signals, right_channel_signals))[m
+[32m+[m[32m        {[m
+[32m+[m
+[32m+[m[32m            auto cal_data = R3B::Neuland::CalData{ paddleID,[m
+[32m+[m[32m                                               left.tot,[m
+[32m+[m[32m                                               right.tot,[m
+[32m+[m[32m                                               left.tle,[m
+[32m+[m[32m                                               right.tle };[m
+[32m+[m
+[32m+[m[32m            if (fHitFilters.IsValid(cal_data))[m
+[32m+[m[32m            {[m
+[32m+[m[32m                fHits.Insert(std::move(cal_data));[m
+[32m+[m[32m                LOG(debug) << "Adding neuland cal with id = " << paddleID;[m
+[32m+[m[32m            }[m
+[32m+[m[32m        } // loop over all hits for each paddle[m
+[32m+[m[32m    }     // loop over paddles[m
+[32m+[m
+[32m+[m[32m    LOG(debug) << "R3BNeulandDigitizerCalData: produced " << fHits.Size() << " hits";[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mvoid R3BNeulandDigitizerCalTask::Finish()[m
+[32m+[m[32m{[m
+[32m+[m[32m    TDirectory* tmp = gDirectory;[m
+[32m+[m[32m    FairRootManager::Instance()->GetOutFile()->cd();[m
+[32m+[m
+[32m+[m[32m    gDirectory->mkdir("R3BNeulandDigitizerCalData");[m
+[32m+[m[32m    gDirectory->cd("R3BNeulandDigitizerCalData");[m
+[32m+[m
+[32m+[m[32m    hMultOne->Write();[m
+[32m+[m[32m    hMultTwo->Write();[m
+[32m+[m
+[32m+[m[32m    gDirectory = tmp;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mClassImp(R3BNeulandDigitizerCalTask); // NOLINT[m
+[1mdiff --git a/neuland/digitizing/Muon/R3BNeulandDigitizerCalData.h b/neuland/digitizing/Muon/R3BNeulandDigitizerCalData.h[m
+[1mnew file mode 100644[m
+[1mindex 00000000..efc400d4[m
+[1m--- /dev/null[m
+[1m+++ b/neuland/digitizing/Muon/R3BNeulandDigitizerCalData.h[m
+[36m@@ -0,0 +1,122 @@[m
+[32m+[m
+[32m+[m[32m/******************************************************************************[m
+[32m+[m[32m *   Copyright (C) 2019 GSI Helmholtzzentrum für Schwerionenforschung GmbH    *[m
+[32m+[m[32m *   Copyright (C) 2019-2024 Members of R3B Collaboration                     *[m
+[32m+[m[32m *                                                                            *[m
+[32m+[m[32m *             This software is distributed under the terms of the            *[m
+[32m+[m[32m *                 GNU General Public Licence (GPL) version 3,                *[m
+[32m+[m[32m *                    copied verbatim in the file "LICENSE".                  *[m
+[32m+[m[32m *                                                                            *[m
+[32m+[m[32m * In applying this license GSI does not waive the privileges and immunities  *[m
+[32m+[m[32m * granted to it by virtue of its status as an Intergovernmental Organization *[m
+[32m+[m[32m * or submit itself to any jurisdiction.                                      *[m
+[32m+[m[32m ******************************************************************************/[m
+[32m+[m
+[32m+[m[32m#pragma once[m
+[32m+[m
+[32m+[m[32m#include "FairTask.h"[m
+[32m+[m[32m#include "Filterable.h"[m
+[32m+[m[32m#include "R3BCalData.h"[m
+[32m+[m[32m#include "R3BDigitizingEngine.h"[m
+[32m+[m[32m#include "R3BDigitizingPaddleNeuland.h"[m
+[32m+[m[32m#include "R3BDigitizingTacQuila.h"[m
+[32m+[m[32m#include "R3BDigitizingTamex.h"[m
+[32m+[m[32m#include "R3BNeulandGeoPar.h"[m
+[32m+[m[32m#include "R3BNeulandHitPar.h"[m
+[32m+[m[32m#include "R3BNeulandPoint.h"[m
+[32m+[m[32m#include "TCAConnector.h"[m
+[32m+[m[32m#include <TClonesArray.h>[m
+[32m+[m[32m#include <TH1.h>[m
+[32m+[m
+[32m+[m[32mclass TGeoNode;[m
+[32m+[m[32mclass TH1F;[m
+[32m+[m[32mclass TH2F;[m
+[32m+[m
+[32m+[m
+[32m+[m[32mnamespace R3B::Neuland[m
+[32m+[m[32m{[m
+[32m+[m
+[32m+[m[32m    struct CalData : public TObject[m
+[32m+[m[32m    {[m
+[32m+[m[32m        int bar_module{};                // ns[m
+[32m+[m[32m        double leading_time_left{};         // ns[m
+[32m+[m[32m        double leading_time_right{};        // ns[m
+[32m+[m[32m        double time_over_threshold_left{};  // ns[m
+[32m+[m[32m        double time_over_threshold_right{}; // ns[m
+[32m+[m[32m        CalData() = default;[m
+[32m+[m[32m        CalData(Int_t paddleid, double totL, double totR, double tleL, double tleR):[m
+[32m+[m[41m       [m
+[32m+[m[32m            bar_module{paddleid},[m
+[32m+[m[32m            leading_time_left{totL},[m
+[32m+[m[32m            leading_time_right{totR},[m
+[32m+[m[32m            time_over_threshold_left{tleL},[m
+[32m+[m[32m            time_over_threshold_right{tleR}[m
+[32m+[m[32m            {}[m
+[32m+[m[32m        ClassDefNV(CalData, 1);[m
+[32m+[m[32m    };[m
+[32m+[m[32m} // namespace R3B::Neuland[m
+[32m+[m
+[32m+[m[32mnamespace Digitizing = R3B::Digitizing;[m
+[32m+[m
+[32m+[m[32mclass R3BNeulandDigitizerCalTask : public FairTask[m
+[32m+[m[32m{[m
+[32m+[m[32m  public:[m
+[32m+[m[32m    enum class Options[m
+[32m+[m[32m    {[m
+[32m+[m[32m        neulandTamex,[m
+[32m+[m[32m        neulandTacquila[m
+[32m+[m[32m    };[m
+[32m+[m[32m    using NeulandPaddle = Digitizing::Neuland::NeulandPaddle;[m
+[32m+[m[32m    using TacquilaChannel = Digitizing::Neuland::TacQuila::Channel;[m
+[32m+[m[32m    using TamexChannel = Digitizing::Neuland::Tamex::Channel;[m
+[32m+[m[32m    template <typename Type>[m
+[32m+[m[32m    using UseChannel = Digitizing::UseChannel<Type>;[m
+[32m+[m[32m    template <typename Type>[m
+[32m+[m[32m    using UsePaddle = Digitizing::UsePaddle<Type>;[m
+[32m+[m
+[32m+[m[32m    explicit R3BNeulandDigitizerCalTask(TString input = "NeulandPoints", TString output = "NeulandHits");[m
+[32m+[m[32m    explicit R3BNeulandDigitizerCalTask(std::unique_ptr<Digitizing::DigitizingEngineInterface> engine,[m
+[32m+[m[32m                                        TString input = "NeulandPoints",[m
+[32m+[m[32m                                        TString output = "NeulandHits");[m
+[32m+[m
+[32m+[m[32m    void SetEngine(std::unique_ptr<Digitizing::DigitizingEngineInterface> engine);[m
+[32m+[m[32m    void AddFilter(const Filterable<R3B::Neuland::CalData&>::Filter& filter) { fHitFilters.Add(filter); }[m
+[32m+[m
+[32m+[m[32m  private:[m
+[32m+[m[32m    TCAInputConnector<R3BNeulandPoint> fPoints;[m
+[32m+[m[32m    TCAOutputConnector<R3B::Neuland::CalData> fHits;[m
+[32m+[m
+[32m+[m[32m    std::unique_ptr<Digitizing::DigitizingEngineInterface> fDigitizingEngine; // owning[m
+[32m+[m
+[32m+[m[32m    Filterable<R3B::Neuland::CalData&> fHitFilters;[m
+[32m+[m
+[32m+[m[32m    R3BNeulandGeoPar* fNeulandGeoPar = nullptr; // non-owning[m
+[32m+[m[32m                                                //[m
+[32m+[m[32m    void Exec(Option_t* /*option*/) override;[m
+[32m+[m[32m    auto Init() -> InitStatus override;[m
+[32m+[m[32m    void Finish() override;[m
+[32m+[m[32m    void SetParContainers() override;[m
+[32m+[m
+[32m+[m[32m    TH1I* hMultOne = nullptr;[m
+[32m+[m[32m    TH1I* hMultTwo = nullptr;[m
+[32m+[m[32m    TH1F* hRLTimeToTrig = nullptr;[m
+[32m+[m
+[32m+[m[32m  public:[m
+[32m+[m[32m    template <typename... Args>[m
+[32m+[m[32m    explicit R3BNeulandDigitizerCalTask(Options option, Args&&... args)[m
+[32m+[m[32m        : R3BNeulandDigitizerCalTask()[m
+[32m+[m[32m    {[m
+[32m+[m[32m        switch (option)[m
+[32m+[m[32m        {[m
+[32m+[m[32m            case Options::neulandTamex:[m
+[32m+[m[32m                fDigitizingEngine = Digitizing::CreateEngine(UsePaddle<NeulandPaddle>(),[m
+[32m+[m[32m                                                             UseChannel<TamexChannel>(std::forward<Args>(args)...));[m
+[32m+[m[32m                break;[m
+[32m+[m[32m            case Options::neulandTacquila:[m
+[32m+[m[32m                fDigitizingEngine = Digitizing::CreateEngine(UsePaddle<NeulandPaddle>(),[m
+[32m+[m[32m                                                             UseChannel<TacquilaChannel>(std::forward<Args>(args)...));[m
+[32m+[m[32m                break;[m
+[32m+[m[32m        }[m
+[32m+[m[32m    }[m
+[32m+[m[32m    ClassDefOverride(R3BNeulandDigitizerCalTask, 1) // NOLINT[m
+[32m+[m[32m};[m
+[1mdiff --git a/neuland/digitizing/NeulandDigitizingLinkDef.h b/neuland/digitizing/NeulandDigitizingLinkDef.h[m
+[1mindex 47d2b606..ff7cd897 100644[m
+[1m--- a/neuland/digitizing/NeulandDigitizingLinkDef.h[m
+[1m+++ b/neuland/digitizing/NeulandDigitizingLinkDef.h[m
+[36m@@ -27,5 +27,7 @@[m
+ #pragma link C++ class R3B::Digitizing::Neuland::Tamex::Params+;[m
+ #pragma link C++ class R3BNeulandHitMon+;[m
+ #pragma link C++ class R3BNeulandDigitizer+;[m
+[32m+[m[32m#pragma link C++ class R3B::Neuland::CalData+;[m
+[32m+[m[32m#pragma link C++ class R3BNeulandDigitizerCalTask+;[m
+ [m
+ #endif[m
+[1mdiff --git a/neuland/digitizing/R3BCalData.h b/neuland/digitizing/R3BCalData.h[m
+[1mnew file mode 100644[m
+[1mindex 00000000..34839f74[m
+[1m--- /dev/null[m
+[1m+++ b/neuland/digitizing/R3BCalData.h[m
+[36m@@ -0,0 +1,80 @@[m
+[32m+[m
+[32m+[m[32m/******************************************************************************[m
+[32m+[m[32m *   Copyright (C) 2019 GSI Helmholtzzentrum für Schwerionenforschung GmbH    *[m
+[32m+[m[32m *   Copyright (C) 2019-2024 Members of R3B Collaboration                     *[m
+[32m+[m[32m *                                                                            *[m
+[32m+[m[32m *             This software is distributed under the terms of the            *[m
+[32m+[m[32m *                 GNU General Public Licence (GPL) version 3,                *[m
+[32m+[m[32m *                    copied verbatim in the file "LICENSE".                  *[m
+[32m+[m[32m *                                                                            *[m
+[32m+[m[32m * In applying this license GSI does not waive the privileges and immunities  *[m
+[32m+[m[32m * granted to it by virtue of its status as an Intergovernmental Organization *[m
+[32m+[m[32m * or submit itself to any jurisdiction.                                      *[m
+[32m+[m[32m ******************************************************************************/[m
+[32m+[m[32m#pragma once[m
+[32m+[m
+[32m+[m[32m#include "TObject.h"[m
+[32m+[m[32m#include "TVector3.h"[m
+[32m+[m[32m#include <R3BFormatters.h>[m
+[32m+[m[32m#include <Rtypes.h>[m
+[32m+[m[32m#include <iostream>[m
+[32m+[m[32m#include "R3BNeulandHit.h"[m
+[32m+[m
+[32m+[m
+[32m+[m[32mstruct R3BNeulandCalData : public TObject[m
+[32m+[m[32m{[m
+[32m+[m[32m    int module_id = 0;[m
+[32m+[m[32m    double tot_left = 0.;[m
+[32m+[m[32m    double tot_right = 0.;[m
+[32m+[m[32m    double tle_left = 0.;[m
+[32m+[m[32m    double tle_right = 0.;[m
+[32m+[m
+[32m+[m[32m    R3BNeulandCalData() = default;[m
+[32m+[m[32m    R3BNeulandCalData(Int_t paddle,[m
+[32m+[m[32m                  double totL,[m
+[32m+[m[32m                  double totR,[m
+[32m+[m[32m                  double tleL,[m
+[32m+[m[32m                  double tleR[m
+[32m+[m[32m                  );[m
+[32m+[m
+[32m+[m[32m    void Print(const Option_t* /*option*/) const override;[m
+[32m+[m[32m    auto operator==(const R3BNeulandCalData& other) const -> bool[m
+[32m+[m[32m    {[m
+[32m+[m[32m        // TODO: Change this if multi-hit capability is introduced[m
+[32m+[m[32m        return this->GetPaddle() == other.GetPaddle();[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    // NOTE: for backward compabitlity[m
+[32m+[m[32m    [[nodiscard]] auto GetPaddle() const -> int { return module_id; }[m
+[32m+[m[32m    [[nodiscard]] auto GettotR() const -> double { return tot_right; }[m
+[32m+[m[32m    [[nodiscard]] auto GettotL() const -> double { return tot_left; }[m
+[32m+[m[32m    [[nodiscard]] auto GettleR() const -> double { return tle_right; }[m
+[32m+[m[32m    [[nodiscard]] auto GettleL() const -> double { return tle_left; }[m
+[32m+[m
+[32m+[m[32m    [[nodiscard]] auto GetBeta() const -> double;[m
+[32m+[m[32m    [[nodiscard]] auto GetEToF(double mass = NEUTRON_MASS_MEV) const -> double;[m
+[32m+[m
+[32m+[m[32m    ClassDefOverride(R3BNeulandCalData, 2);[m
+[32m+[m[32m};[m
+[32m+[m
+[32m+[m[32mauto operator<<(std::ostream&, const R3BNeulandCalData&) -> std::ostream&; // Support easy printing[m
+[32m+[m[32m                                                                       //[m
+[32m+[m[32mtemplate <>[m
+[32m+[m[32mclass fmt::formatter<R3BNeulandCalData>[m
+[32m+[m[32m{[m
+[32m+[m[32m  public:[m
+[32m+[m[32m    static constexpr auto parse(format_parse_context& ctx) { return ctx.end(); }[m
+[32m+[m[32m    template <typename FmtContent>[m
+[32m+[m[32m    constexpr auto format(const R3BNeulandCalData& hit, FmtContent& ctn) const[m
+[32m+[m[32m    {[m
+[32m+[m[32m        return format_to([m
+[32m+[m[32m            ctn.out(),[m
+[32m+[m[32m            "{{module_id: {}, left_tot: {}, right_tot: {}, time: {} ns, left_tle: {}, right_tle: {}, energy: "[m
+[32m+[m[32m            "{} MeV, position: {} cm, pixel: {}}}",[m
+[32m+[m[32m            hit.module_id,[m
+[32m+[m[32m            hit.tot_left,[m
+[32m+[m[32m            hit.tot_right,[m
+[32m+[m[32m            hit.tle_left,[m
+[32m+[m[32m            hit.tle_right);[m
+[32m+[m[32m    }[m
+[32m+[m[32m};[m
+[1mdiff --git a/neuland/digitizing/R3BDigitizingChannel.cxx b/neuland/digitizing/R3BDigitizingChannel.cxx[m
+[1mindex de904f90..98826aac 100644[m
+[1m--- a/neuland/digitizing/R3BDigitizingChannel.cxx[m
+[1m+++ b/neuland/digitizing/R3BDigitizingChannel.cxx[m
+[36m@@ -27,16 +27,34 @@[m [mnamespace R3B::Digitizing[m
+         return random3;[m
+     }[m
+ [m
+[32m+[m[32m    // ToDo: Add a flag in which constructcalsignals will be called instead of constructSignals[m
+     auto Channel::GetSignals() -> const Signals&[m
+     {[m
+         if (!fSignals.valid())[m
+         {[m
+[31m-            fSignals.set(ConstructSignals());[m
+[32m+[m[32m            if (JustCalData_==true)[m
+[32m+[m[32m            {[m
+[32m+[m[32m                fCalSignals.set(ConstructCalSignals());[m
+[32m+[m[32m            }[m
+[32m+[m[32m            else[m
+[32m+[m[32m            {[m
+[32m+[m[32m                fSignals.set(ConstructSignals());[m
+[32m+[m[32m            }[m
+         }[m
+         return fSignals.getRef();[m
+     }[m
+ [m
+[32m+[m[32m    // auto Channel::GetCalSignals() -> const CalSignals&[m
+[32m+[m[32m    // {[m
+[32m+[m[32m    //     if (!fCalSignals.valid())[m
+[32m+[m[32m    //     {[m
+[32m+[m[32m    //         fCalSignals.set(ConstructCalSignals());[m
+[32m+[m[32m    //     }[m
+[32m+[m[32m    //     return fCalSignals.getRef();[m
+[32m+[m[32m    // }[m
+[32m+[m
+     auto Channel::HasFired() -> bool { return (!GetSignals().empty()); }[m
+[32m+[m[32m/*     auto Channel::HasCalFired() -> bool { return (!GetCalSignals().empty()); } */[m
+ [m
+     auto Channel::GetTrigTime() -> double[m
+     {[m
+[1mdiff --git a/neuland/digitizing/R3BDigitizingChannel.h b/neuland/digitizing/R3BDigitizingChannel.h[m
+[1mindex 24123d4f..28817e40 100644[m
+[1m--- a/neuland/digitizing/R3BDigitizingChannel.h[m
+[1m+++ b/neuland/digitizing/R3BDigitizingChannel.h[m
+[36m@@ -36,6 +36,15 @@[m [mnamespace R3B::Digitizing[m
+         ChannelSignal() = default;[m
+     };[m
+ [m
+[32m+[m[32m    // output data structure for Cal Data[m
+[32m+[m[32m    struct ChannelCalSignal[m
+[32m+[m[32m    {[m
+[32m+[m[32m        double tot{};[m
+[32m+[m[32m        double tle{};[m
+[32m+[m[32m        ChannelSide side{};[m
+[32m+[m[32m        ChannelCalSignal() = default;[m
+[32m+[m[32m    };[m
+[32m+[m
+     // input data structure of channel[m
+     struct ChannelHit[m
+     {[m
+[36m@@ -54,8 +63,10 @@[m [mnamespace R3B::Digitizing[m
+     {[m
+       public:[m
+         using Signal = ChannelSignal;[m
+[32m+[m[32m        using CalSignal = ChannelCalSignal;[m
+         using Hit = ChannelHit;[m
+         using Signals = std::vector<Signal>;[m
+[32m+[m[32m        using CalSignals = std::vector<CalSignal>;[m
+ [m
+         explicit Channel(ChannelSide);[m
+ [m
+[36m@@ -68,25 +79,43 @@[m [mnamespace R3B::Digitizing[m
+ [m
+         virtual void AddHit(Hit hit) = 0;[m
+         virtual auto HasFired() -> bool;[m
+[32m+[m[32m        // virtual auto HasCalFired() -> bool;[m
+ [m
+         // Getters:[m
+         virtual auto GetTrigTime() -> double;[m
+         auto GetSignals() -> const Signals&;[m
+[32m+[m[32m        // auto GetCalSignals() -> const CalSignals&;[m
+         auto GetSide() const -> ChannelSide { return fSide; }[m
+         auto GetPaddle() const -> Paddle* { return fPaddle; }[m
+[32m+[m[32m        auto GetJustCalData() const -> bool { return JustCalData_; }[m
+[32m+[m[32m        virtual auto GetCalSignals()  ->  CalSignals[m
+[32m+[m[32m        {[m
+[32m+[m[32m            auto virtual_sig = CalSignals{};[m
+[32m+[m[32m            return virtual_sig;[m
+[32m+[m[32m        }[m
+ [m
+[32m+[m[32m        void SetJustCalData(bool JustCalData) { JustCalData_ = JustCalData; }[m
+         void SetPaddle(Paddle* v_paddle) { fPaddle = v_paddle; }[m
+         auto Is_ValidSignals() -> bool { return fSignals.valid(); }[m
+[32m+[m[32m        auto Is_ValidCalSignals() -> bool { return fCalSignals.valid(); }[m
+         void InvalidateSignals() { fSignals.invalidate(); }[m
+[32m+[m[32m        void InvalidateCalSignals() { fCalSignals.invalidate(); }[m
+         void InvalidateTrigTime() { fTrigTime.invalidate(); }[m
+         virtual void AttachToPaddle(Paddle* paddle) { fPaddle = paddle; };[m
+         static auto GetDefaultRandomGen() -> TRandom3&;[m
+ [m
+       private:[m
+         virtual auto ConstructSignals() -> Signals = 0;[m
+[31m-        Paddle* fPaddle = nullptr;           // pointer to the paddle who owns this channel[m
+[31m-        ChannelSide fSide;                   // side of the channel[m
+[31m-        mutable Validated<Signals> fSignals; // output signals from the channel[m
+[32m+[m[32m        virtual auto ConstructCalSignals() -> CalSignals[m
+[32m+[m[32m        {[m
+[32m+[m[32m            auto virtual_cal_signal = CalSignals{};[m
+[32m+[m[32m            return virtual_cal_signal;[m
+[32m+[m[32m        };[m
+[32m+[m[32m        Paddle* fPaddle = nullptr;                 // pointer to the paddle who owns this channel[m
+[32m+[m[32m        ChannelSide fSide;                         // side of the channel[m
+[32m+[m[32m        mutable Validated<Signals> fSignals;       // output signals from the channel[m
+[32m+[m[32m        mutable Validated<CalSignals> fCalSignals; // output cal signals from the channel[m
+         mutable Validated<double> fTrigTime;[m
+[32m+[m[32m        mutable bool JustCalData_{ false };[m
+     };[m
+ } // namespace R3B::Digitizing[m
+[1mdiff --git a/neuland/digitizing/R3BDigitizingPaddle.cxx b/neuland/digitizing/R3BDigitizingPaddle.cxx[m
+[1mindex 12d325cd..a9b6259c 100644[m
+[1m--- a/neuland/digitizing/R3BDigitizingPaddle.cxx[m
+[1m+++ b/neuland/digitizing/R3BDigitizingPaddle.cxx[m
+[36m@@ -113,6 +113,26 @@[m [mnamespace R3B::Digitizing[m
+         return fSignals.getRef();[m
+     }[m
+ [m
+[32m+[m[32m    auto Paddle::GetSignals(bool JustCalData) const -> const Signals&[m
+[32m+[m[32m    {[m
+[32m+[m[32m        if (!fSignals.valid())[m
+[32m+[m[32m        {[m
+[32m+[m[32m            if (HasFired())[m
+[32m+[m[32m            {[m
+[32m+[m[32m                fLeftChannel->SetJustCalData(JustCalData);[m
+[32m+[m[32m                fRightChannel->SetJustCalData(JustCalData);[m
+[32m+[m[32m                auto signals = ConstructPaddelSignals(fLeftChannel->GetSignals(), fRightChannel->GetSignals());[m
+[32m+[m[32m                fSignals.set(std::move(signals));[m
+[32m+[m[32m            }[m
+[32m+[m[32m            else[m
+[32m+[m[32m            {[m
+[32m+[m[32m                fSignals.set({});[m
+[32m+[m[32m            }[m
+[32m+[m[32m        }[m
+[32m+[m
+[32m+[m[32m        return fSignals.getRef();[m
+[32m+[m[32m    }[m
+[32m+[m
+     auto Paddle::SignalCouplingByTime(const Channel::Signals& firstSignals, const Channel::Signals& secondSignals)[m
+         -> std::vector<ChannelSignalPair>[m
+     {[m
+[1mdiff --git a/neuland/digitizing/R3BDigitizingPaddle.h b/neuland/digitizing/R3BDigitizingPaddle.h[m
+[1mindex e359e5e3..4940991c 100644[m
+[1m--- a/neuland/digitizing/R3BDigitizingPaddle.h[m
+[1m+++ b/neuland/digitizing/R3BDigitizingPaddle.h[m
+[36m@@ -16,6 +16,7 @@[m
+ [m
+ #include "R3BDigitizingChannel.h"[m
+ #include <R3BLogger.h>[m
+[32m+[m[32m#include <R3BNeulandCalToHitPar.h>[m
+ #include <RtypesCore.h>[m
+ #include <functional>[m
+ #include <memory>[m
+[36m@@ -39,9 +40,18 @@[m [mnamespace R3B::Digitizing[m
+         double energy{};[m
+         double time{};[m
+         double position{};[m
+[31m-        const Channel::Signal& leftChannel;[m
+[31m-        const Channel::Signal& rightChannel;[m
+[31m-        explicit PaddleSignal(LRPair<const Channel::Signal&> p_signals)[m
+[32m+[m[32m        const Channel::Signal leftChannel;[m
+[32m+[m[32m        const Channel::Signal rightChannel;[m
+[32m+[m[32m         Channel::CalSignal leftChannelCal;[m
+[32m+[m[32m         Channel::CalSignal rightChannelCal;[m
+[32m+[m
+[32m+[m[32m        explicit PaddleSignal(LRPair<const Channel::CalSignal> p_signals)[m
+[32m+[m[32m            : leftChannelCal{ p_signals.left }[m
+[32m+[m[32m            , rightChannelCal{ p_signals.right }[m
+[32m+[m[32m        {[m
+[32m+[m[32m        }[m
+[32m+[m
+[32m+[m[32m        explicit PaddleSignal(LRPair<const Channel::Signal> p_signals)[m
+             : leftChannel{ p_signals.left }[m
+             , rightChannel{ p_signals.right }[m
+         {[m
+[36m@@ -86,6 +96,7 @@[m [mnamespace R3B::Digitizing[m
+         // Getters:[m
+         auto GetPaddleID() const -> int { return fPaddleID; }[m
+         auto GetSignals() const -> const std::vector<Signal>&;[m
+[32m+[m[32m        auto GetSignals(bool JustCalData) const -> const std::vector<Signal>&;[m
+         auto GetSignalCouplingStragtegy() const -> const SignalCouplingStrategy& { return fSignalCouplingStrategy; }[m
+         auto GetLeftChannel() const -> const Channel* { return fLeftChannel.get(); }[m
+         auto& GetLeftChannelRef() { return *fLeftChannel; }[m
+[36m@@ -99,6 +110,7 @@[m [mnamespace R3B::Digitizing[m
+         std::unique_ptr<Channel> fLeftChannel{};[m
+         std::unique_ptr<Channel> fRightChannel{};[m
+         SignalCouplingStrategy fSignalCouplingStrategy;[m
+[32m+[m
+         // virtual std::function<indexMapFunc> IndexMapFunc() const { return ConstructIndexMapByTime; }[m
+         virtual auto ConstructPaddelSignals(const Channel::Signals& firstSignals,[m
+                                             const Channel::Signals& secondSignals) const -> Signals;[m
+[1mdiff --git a/neuland/digitizing/R3BDigitizingTamex.cxx b/neuland/digitizing/R3BDigitizingTamex.cxx[m
+[1mindex 7dd00aa2..13ebbb36 100644[m
+[1m--- a/neuland/digitizing/R3BDigitizingTamex.cxx[m
+[1m+++ b/neuland/digitizing/R3BDigitizingTamex.cxx[m
+[36m@@ -246,6 +246,42 @@[m [mnamespace R3B::Digitizing::Neuland::Tamex[m
+         return signal;[m
+     }[m
+ [m
+[32m+[m[32m    auto Channel::CreateCalSignal(const FQTPeak& peak) const -> CalSignal[m
+[32m+[m[32m    {[m
+[32m+[m[32m        auto peakQdc = peak.GetQDC();[m
+[32m+[m[32m        auto peakTime = peak.GetLETime();[m
+[32m+[m[32m        auto qdc = ToQdc(peakQdc);[m
+[32m+[m
+[32m+[m[32m        auto signal = CalSignal{};[m
+[32m+[m[32m        signal.tot = CalculateTOT(qdc);[m
+[32m+[m[32m        signal.tle = peakTime;[m
+[32m+[m[32m        signal.side = this->GetSide();[m
+[32m+[m[32m        LOG(debug) << "R3BDigitizingTamex: Create a Cal signal with time over threshold " << signal.tot[m
+[32m+[m[32m                   << " and leading edge time " << signal.tle << std::endl;[m
+[32m+[m[32m        return signal;[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    auto Channel::CalculateTOT(const double& qdc) const -> double[m
+[32m+[m[32m    {[m
+[32m+[m[32m        // ToDo: Decide if ERROR stuff is needed[m
+[32m+[m[32m        //  if (GetErrorCalculation())[m
+[32m+[m[32m        //  {[m
+[32m+[m[32m        //      ValueError<double> qdc_err_val{ qdc, 0 };[m
+[32m+[m[32m        //      auto par_err_val = GetParErrVal();[m
+[32m+[m[32m        //      auto tot_err_val = qdc_err_val * par_err_val.energyGain + par_err_val.pedestal;[m
+[32m+[m[32m        //      auto randGen = GetDefaultRandomGen();[m
+[32m+[m[32m        //      return randGen.Gaus(tot_err_val.value, tot_err_val.error);[m
+[32m+[m[32m        //  }[m
+[32m+[m[32m        //  else {[m
+[32m+[m[32m        //[m
+[32m+[m[32m        //      auto par = GetParConstRef();[m
+[32m+[m[32m        //      return (qdc * par.fEnergyGain + par.fPedestal);[m
+[32m+[m[32m        //  }[m
+[32m+[m
+[32m+[m[32m        auto par = GetParConstRef();[m
+[32m+[m[32m        return (qdc * par.fEnergyGain + par.fPedestal);[m
+[32m+[m[32m    }[m
+[32m+[m
+     template <typename Peak>[m
+     void Channel::PeakPileUp(/* inout */ std::vector<Peak>& peaks)[m
+     {[m
+[36m@@ -383,12 +419,47 @@[m [mnamespace R3B::Digitizing::Neuland::Tamex[m
+         return signals;[m
+     }[m
+ [m
+[32m+[m[32m    auto Channel::ConstructCalSignals() -> CalSignals[m
+[32m+[m[32m    {[m
+[32m+[m[32m        fqt_peaks_ = ConstructFQTPeaks(pmt_peaks_);[m
+[32m+[m[32m        // signal pileup:[m
+[32m+[m[32m        FQTPeakPileUp(fqt_peaks_);[m
+[32m+[m
+[32m+[m[32m        // construct Channel signals:[m
+[32m+[m[32m        auto cal_signals = std::vector<CalSignal>{};[m
+[32m+[m[32m        cal_signals.reserve(fqt_peaks_.size());[m
+[32m+[m
+[32m+[m[32m        for (const auto& peak : fqt_peaks_)[m
+[32m+[m[32m        {[m
+[32m+[m[32m            cal_signals.emplace_back(CreateCalSignal(peak));[m
+[32m+[m[32m        }[m
+[32m+[m[32m        return cal_signals;[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    auto Channel::GetCalSignals() ->  CalSignals[m[41m [m
+[32m+[m
+[32m+[m[32m    {[m
+[32m+[m[32m        return ConstructCalSignals();[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    //Paula: if statements delete i think[m
+     auto Channel::GetFQTPeaks() -> const std::vector<FQTPeak>&[m
+     {[m
+ [m
+         if (!Is_ValidSignals())[m
+         {[m
+[31m-            ConstructSignals();[m
+[32m+[m[32m            /*             ConstructSignals(); */[m
+[32m+[m
+[32m+[m[32m            auto JustCalData =GetJustCalData();[m
+[32m+[m
+[32m+[m[32m            if (JustCalData == true)[m
+[32m+[m[32m            {[m
+[32m+[m[32m                ConstructCalSignals();[m
+[32m+[m[32m            }[m
+[32m+[m[32m            else[m
+[32m+[m[32m            {[m
+[32m+[m[32m                ConstructSignals();[m
+[32m+[m[32m            }[m
+         }[m
+         return fqt_peaks_;[m
+     }[m
+[36m@@ -397,7 +468,18 @@[m [mnamespace R3B::Digitizing::Neuland::Tamex[m
+     {[m
+         if (!Is_ValidSignals())[m
+         {[m
+[31m-            ConstructSignals();[m
+[32m+[m[32m            /*             ConstructSignals(); */[m
+[32m+[m
+[32m+[m[32m            auto JustCalData =GetJustCalData();[m
+[32m+[m
+[32m+[m[32m            if (JustCalData == true)[m
+[32m+[m[32m            {[m
+[32m+[m[32m                ConstructCalSignals();[m
+[32m+[m[32m            }[m
+[32m+[m[32m            else[m
+[32m+[m[32m            {[m
+[32m+[m[32m                ConstructSignals();[m
+[32m+[m[32m            }[m
+         }[m
+         return pmt_peaks_;[m
+     }[m
+[1mdiff --git a/neuland/digitizing/R3BDigitizingTamex.h b/neuland/digitizing/R3BDigitizingTamex.h[m
+[1mindex 7e0d16b5..c242ca6d 100644[m
+[1m--- a/neuland/digitizing/R3BDigitizingTamex.h[m
+[1m+++ b/neuland/digitizing/R3BDigitizingTamex.h[m
+[36m@@ -147,17 +147,25 @@[m [mnamespace R3B::Digitizing::Neuland::Tamex[m
+         }[m
+         // Setters:[m
+         void SetPileUpStrategy(PeakPileUpStrategy strategy) { pileup_strategy_ = strategy; }[m
+[32m+[m[32m        auto SetHitModulPar(R3B::Neuland::HitModulePar hit_module_par)[m
+[32m+[m[32m        {[m
+[32m+[m[32m            hit_module_par_ = hit_module_par;[m
+[32m+[m[32m        } // Added for qdc in time[m
+ [m
+         // Getters:[m
+         auto GetPar() -> Tamex::Params& { return par_; }[m
+         auto GetParConstRef() const -> const Tamex::Params& { return par_; }[m
+         auto GetFQTPeaks() -> const std::vector<FQTPeak>&;[m
+         auto GetPMTPeaks() -> const std::vector<PMTPeak>&;[m
+[32m+[m[32m        auto GetCalSignals()  -> CalSignals override;[m
+ [m
+         void AddHit(Hit /*hit*/) override;[m
+         auto CreateSignal(const FQTPeak& peak) const -> Signal;[m
+[32m+[m[32m        auto CreateCalSignal(const FQTPeak& peak) const -> CalSignal;[m
+         static void GetHitPar(const std::string& hitParName);[m
+ [m
+[32m+[m[32m        auto GetHitModulePar() const -> R3B::Neuland::HitModulePar { return hit_module_par_; } // Added for qdc in time[m
+[32m+[m
+       private:[m
+         PeakPileUpStrategy pileup_strategy_ = PeakPileUpStrategy::width;[m
+         std::vector<PMTPeak> pmt_peaks_;[m
+[36m@@ -166,8 +174,11 @@[m [mnamespace R3B::Digitizing::Neuland::Tamex[m
+         R3BNeulandHitModulePar* neuland_hit_module_par_ = nullptr;[m
+         Tamex::Params par_;[m
+ [m
+[32m+[m[32m        R3B::Neuland::HitModulePar hit_module_par_; // Added for qdc in time[m
+[32m+[m
+         // private virtual functions[m
+         auto ConstructSignals() -> Signals override;[m
+[32m+[m[32m        auto ConstructCalSignals() -> CalSignals override;[m
+         void AttachToPaddle(Digitizing::Paddle* paddle) override;[m
+ [m
+         // private non-virtual functions[m
+[36m@@ -186,6 +197,7 @@[m [mnamespace R3B::Digitizing::Neuland::Tamex[m
+         static void PeakPileUpWithDistance(/* inout */ std::vector<FQTPeak>& peaks, double distance);[m
+         static void PeakPileUpInTimeWindow(/* inout */ std::vector<FQTPeak>& peaks, double time_window);[m
+         void FQTPeakPileUp(/* inout */ std::vector<FQTPeak>& peaks);[m
+[32m+[m[32m        auto CalculateTOT(const double& qdc) const -> double;[m
+     };[m
+ [m
+ } // namespace R3B::Digitizing::Neuland::Tamex[m
+[1mdiff --git a/neuland/digitizing/R3BNeulandDigitizer.cxx b/neuland/digitizing/R3BNeulandDigitizer.cxx[m
+[1mindex 822bfecb..d2f0287e 100644[m
+[1m--- a/neuland/digitizing/R3BNeulandDigitizer.cxx[m
+[1m+++ b/neuland/digitizing/R3BNeulandDigitizer.cxx[m
+[36m@@ -141,7 +141,7 @@[m [mvoid R3BNeulandDigitizer::Exec(Option_t* /*option*/)[m
+ [m
+         auto signals = paddle->GetSignals();[m
+ [m
+[31m-        for (const auto signal : signals)[m
+[32m+[m[32m        for (const auto& signal : signals)[m
+         {[m
+             const TVector3 hitPositionLocal = TVector3(signal.position, 0., 0.);[m
+             const TVector3 hitPositionGlobal = fNeulandGeoPar->ConvertToGlobalCoordinates(hitPositionLocal, paddleID);[m
+[1mdiff --git a/neuland/executables/CMakeLists.txt b/neuland/executables/CMakeLists.txt[m
+[1mindex f2b65731..373fd10f 100644[m
+[1m--- a/neuland/executables/CMakeLists.txt[m
+[1m+++ b/neuland/executables/CMakeLists.txt[m
+[36m@@ -9,6 +9,9 @@[m [mtarget_link_libraries([m
+ add_executable(neulandAna neulandAna.cxx)[m
+ target_link_libraries(neulandAna PRIVATE R3BNeulandDigitizing)[m
+ [m
+[32m+[m[32madd_executable(neulandMuon neulandMuon.cxx)[m
+[32m+[m[32mtarget_link_libraries(neulandMuon PRIVATE R3BNeulandDigitizing)[m
+[32m+[m
+ if(CONAN_ENABLED)[m
+     add_executable(neuland_lmd_to_map neuland_lmd_to_map.cxx)[m
+     target_link_libraries(neuland_lmd_to_map PRIVATE R3BNeulandCalibration R3BSource -pthread)[m
+[1mdiff --git a/neuland/executables/neulandMuon.cxx b/neuland/executables/neulandMuon.cxx[m
+[1mnew file mode 100644[m
+[1mindex 00000000..d15d42ad[m
+[1m--- /dev/null[m
+[1m+++ b/neuland/executables/neulandMuon.cxx[m
+[36m@@ -0,0 +1,158 @@[m
+[32m+[m
+[32m+[m[32m/******************************************************************************[m
+[32m+[m[32m *   Copyright (C) 2019 GSI Helmholtzzentrum für Schwerionenforschung GmbH    *[m
+[32m+[m[32m *   Copyright (C) 2019-2023 Members of R3B Collaboration                     *[m
+[32m+[m[32m *                                                                            *[m
+[32m+[m[32m *             This software is distributed under the terms of the            *[m
+[32m+[m[32m *                 GNU General Public Licence (GPL) version 3,                *[m
+[32m+[m[32m *                    copied verbatim in the file "LICENSE".                  *[m
+[32m+[m[32m *                                                                            *[m
+[32m+[m[32m * In applying this license GSI does not waive the privileges and immunities  *[m
+[32m+[m[32m * granted to it by virtue of its status as an Intergovernmental Organization *[m
+[32m+[m[32m * or submit itself to any jurisdiction.                                      *[m
+[32m+[m[32m ******************************************************************************/[m
+[32m+[m
+[32m+[m[32m#include "FairFileSource.h"[m
+[32m+[m[32m#include "FairParRootFileIo.h"[m
+[32m+[m[32m#include "FairRootFileSink.h"[m
+[32m+[m[32m#include "FairRunAna.h"[m
+[32m+[m[32m#include "FairRuntimeDb.h"[m
+[32m+[m[32m#include "R3BDigitizingChannelMock.h"[m
+[32m+[m[32m#include "R3BDigitizingPaddleMock.h"[m
+[32m+[m[32m#include "R3BDigitizingPaddleNeuland.h"[m
+[32m+[m[32m#include "R3BDigitizingTacQuila.h"[m
+[32m+[m[32m#include "R3BDigitizingTamex.h"[m
+[32m+[m[32m#include "R3BFileSource2.h"[m
+[32m+[m[32m#include <R3BNeulandDigitizerCalData.h>[m
+[32m+[m[32m#include "R3BNeulandHitMon.h"[m
+[32m+[m[32m#include "R3BProgramOptions.h"[m
+[32m+[m[32m#include "TRandom3.h"[m
+[32m+[m[32m#include "TStopwatch.h"[m
+[32m+[m[32m#include <TObjString.h>[m
+[32m+[m[32m#include <boost/program_options.hpp>[m
+[32m+[m
+[32m+[m[32mnamespace Digitizing = R3B::Digitizing;[m
+[32m+[m[32musing NeulandPaddle = Digitizing::Neuland::NeulandPaddle;[m
+[32m+[m[32musing MockPaddle = Digitizing::Neuland::MockPaddle;[m
+[32m+[m[32musing TamexChannel = Digitizing::Neuland::Tamex::Channel;[m
+[32m+[m[32musing TacquilaChannel = Digitizing::Neuland::TacQuila::Channel;[m
+[32m+[m[32musing MockChannel = Digitizing::Neuland::MockChannel;[m
+[32m+[m[32musing Digitizing::UseChannel;[m
+[32m+[m[32musing Digitizing::UsePaddle;[m
+[32m+[m
+[32m+[m[32m// auto GetHitPar(const std::string& parName)[m
+[32m+[m[32m// {[m
+[32m+[m[32m//     return []() { Digitizing::Neuland::Tamex::Channel::GetHitPar("test"); };[m
+[32m+[m[32m// }[m
+[32m+[m
+[32m+[m[32mauto main(int argc, const char** argv) -> int[m
+[32m+[m[32m{[m
+[32m+[m[32m    auto timer = TStopwatch{};[m
+[32m+[m[32m    timer.Start();[m
+[32m+[m
+[32m+[m[32m    auto programOptions = R3B::ProgramOptions("options for neuland data analysis");[m
+[32m+[m[32m    auto help = programOptions.create_option<bool>("help,h", "help message", false);[m
+[32m+[m[32m    auto paddleName =[m
+[32m+[m[32m        programOptions.create_option<std::string>("paddle", R"(set the paddle name. e.g. "neuland")", "neuland");[m
+[32m+[m[32m    auto channelName =[m
+[32m+[m[32m        programOptions.create_option<std::string>("channel", R"(set the channel name. e.g. "tamex")", "tacquila");[m
+[32m+[m[32m    auto simuFileName =[m
+[32m+[m[32m        programOptions.create_option<std::string>("simuFile", "set the filename of simulation input", "simu.root");[m
+[32m+[m[32m    auto paraFileName =[m
+[32m+[m[32m        programOptions.create_option<std::string>("paraFile", "set the filename of parameter sink", "para.root");[m
+[32m+[m[32m    auto paraFileName2 =[m
+[32m+[m[32m        programOptions.create_option<std::string>("paraFile2", "set the filename of the second parameter sink", "");[m
+[32m+[m[32m    auto digiFileName =[m
+[32m+[m[32m        programOptions.create_option<std::string>("digiFile", "set the filename of digitization output", "digi.root");[m
+[32m+[m[32m    auto logLevel = programOptions.create_option<std::string>("logLevel,v", "set log level of fairlog", "error");[m
+[32m+[m[32m    auto eventNum = programOptions.create_option<int>("eventNum,n", "set total event number", 0);[m
+[32m+[m[32m    auto hitLevelPar =[m
+[32m+[m[32m        programOptions.create_option<std::string>("hitLevelPar", "set the name of hit level parameter if needed.", "");[m
+[32m+[m
+[32m+[m
+[32m+[m[32m    auto errorcal = programOptions.create_option<bool>("errorCal", "usage of errors in calculations", false);[m
+[32m+[m
+[32m+[m[32m    if (!programOptions.verify(argc, argv))[m
+[32m+[m[32m    {[m
+[32m+[m[32m        return EXIT_FAILURE;[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    if (help())[m
+[32m+[m[32m    {[m
+[32m+[m[32m        std::cout << programOptions.get_desc_ref() << std::endl;[m
+[32m+[m[32m        return 0;[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    auto const channelInit = [&]()[m
+[32m+[m[32m    {[m
+[32m+[m[32m        if (not hitLevelPar().empty())[m
+[32m+[m[32m        {[m
+[32m+[m[32m            FairRuntimeDb::instance()->getContainer(hitLevelPar().c_str());[m
+[32m+[m[32m            Digitizing::Neuland::Tamex::Channel::GetHitPar(hitLevelPar());[m
+[32m+[m[32m        }[m
+[32m+[m[32m    };[m
+[32m+[m
+[32m+[m[32m    //=============================================================================[m
+[32m+[m[32m    // settings:[m
+[32m+[m[32m    auto tamexParameter = Digitizing::Neuland::Tamex::Params{ TamexChannel::GetDefaultRandomGen() };[m
+[32m+[m[32m    auto pileup_strategy = Digitizing::Neuland::Tamex::PeakPileUpStrategy::time_window;[m
+[32m+[m[32m    tamexParameter.fPMTThresh = 1.;[m
+[32m+[m[32m    tamexParameter.fTimeMin = 1.;[m
+[32m+[m
+[32m+[m[32m    const auto neulandEngines = std::map<std::pair<const std::string, const std::string>,[m
+[32m+[m[32m                                         std::function<std::unique_ptr<Digitizing::DigitizingEngineInterface>()>>{[m
+[32m+[m[32m        { { "neuland", "tamex" },[m
+[32m+[m[32m          [&]()[m
+[32m+[m[32m          {[m
+[32m+[m[32m              return Digitizing::CreateEngine([m
+[32m+[m[32m                  UsePaddle<NeulandPaddle>(), UseChannel<TamexChannel>(pileup_strategy, tamexParameter), channelInit);[m
+[32m+[m[32m          } },[m
+[32m+[m[32m        { { "neuland", "tacquila" },[m
+[32m+[m[32m          []() { return Digitizing::CreateEngine(UsePaddle<NeulandPaddle>(), UseChannel<TacquilaChannel>()); } },[m
+[32m+[m[32m        { { "mock", "tamex" },[m
+[32m+[m[32m          [&]()[m
+[32m+[m[32m          {[m
+[32m+[m[32m              return Digitizing::CreateEngine([m
+[32m+[m[32m                  UsePaddle<MockPaddle>(), UseChannel<TamexChannel>(pileup_strategy, tamexParameter), channelInit);[m
+[32m+[m[32m          } },[m
+[32m+[m[32m        { { "neuland", "mock" },[m
+[32m+[m[32m          []() { return Digitizing::CreateEngine(UsePaddle<NeulandPaddle>(), UseChannel<MockChannel>()); } },[m
+[32m+[m[32m        { { "mock", "mock" },[m
+[32m+[m[32m          []() { return Digitizing::CreateEngine(UsePaddle<MockPaddle>(), UseChannel<MockChannel>()); } }[m
+[32m+[m[32m    };[m
+[32m+[m[32m    //=============================================================================[m
+[32m+[m
+[32m+[m[32m    FairLogger::GetLogger()->SetLogScreenLevel(logLevel().c_str());[m
+[32m+[m
+[32m+[m[32m    auto run = std::make_unique<FairRunAna>();[m
+[32m+[m[32m    auto filesource = std::make_unique<R3BFileSource2>(simuFileName().c_str());[m
+[32m+[m[32m    auto filesink = std::make_unique<FairRootFileSink>(digiFileName().c_str());[m
+[32m+[m[32m    run->SetSource(filesource.release());[m
+[32m+[m[32m    run->SetSink(filesink.release());[m
+[32m+[m
+[32m+[m[32m    auto fileio = std::make_unique<FairParRootFileIo>();[m
+[32m+[m[32m    fileio->open(paraFileName().c_str());[m
+[32m+[m[32m    run->GetRuntimeDb()->setFirstInput(fileio.release());[m
+[32m+[m
+[32m+[m[32m    if (const auto& filename = paraFileName2(); not filename.empty())[m
+[32m+[m[32m    {[m
+[32m+[m[32m        auto fileio2 = std::make_unique<FairParRootFileIo>();[m
+[32m+[m[32m        fileio2->open(paraFileName2().c_str());[m
+[32m+[m[32m        run->GetRuntimeDb()->setSecondInput(fileio2.release());[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    auto digiNeuland = std::make_unique<R3BNeulandDigitizerCalTask>();[m
+[32m+[m[32m    digiNeuland->SetEngine((neulandEngines.at({ paddleName(), channelName() }))());[m
+[32m+[m[32m    run->AddTask(digiNeuland.release());[m
+[32m+[m[32m    auto hitmon = std::make_unique<R3BNeulandHitMon>();[m
+[32m+[m[32m    run->AddTask(hitmon.release());[m
+[32m+[m
+[32m+[m[32m    run->Init();[m
+[32m+[m[32m    run->Run(0, eventNum());[m
+[32m+[m
+[32m+[m[32m    timer.Stop();[m
+[32m+[m[32m    auto* sink = run->GetSink();[m
+[32m+[m[32m    sink->Close();[m
+[32m+[m[32m    std::cout << "Macro finished successfully." << std::endl;[m
+[32m+[m[32m    std::cout << "Real time: " << timer.RealTime() << "s, CPU time: " << timer.CpuTime() << "s" << std::endl;[m
+[32m+[m[32m}[m
+[1mdiff --git a/neuland/executables/neulandSim.cxx b/neuland/executables/neulandSim.cxx[m
+[1mindex 81675a6a..3d3359c9 100644[m
+[1m--- a/neuland/executables/neulandSim.cxx[m
+[1m+++ b/neuland/executables/neulandSim.cxx[m
+[36m@@ -1,3 +1,5 @@[m
+[32m+[m[32m#include "CosmicMuon.h"[m
+[32m+[m[32m#include "CosmicMuonDistributions.h"[m
+ #include "FairBoxGenerator.h"[m
+ #include "FairParRootFileIo.h"[m
+ #include "FairPrimaryGenerator.h"[m
+[36m@@ -12,8 +14,10 @@[m
+ #include <R3BPhaseSpaceGenerator.h>[m
+ #include <R3BProgramOptions.h>[m
+ #include <TG4EventAction.h>[m
+[32m+[m[32m#include <TRandom2.h>[m
+ #include <boost/exception/diagnostic_information.hpp>[m
+ #include <boost/program_options.hpp>[m
+[32m+[m[32m#include <ctime>[m
+ #include <iostream>[m
+ #include <string>[m
+ [m
+[36m@@ -71,29 +75,43 @@[m [mauto main(int argc, const char** argv) -> int[m
+     run->SetField(fairField.release());[m
+ [m
+     // Primary particle generator[m
+[31m-    auto gen = std::make_unique<R3BPhaseSpaceGenerator>();[m
+[31m-[m
+[31m-    constexpr auto beam_energy = 883.;      // MeV[m
+[31m-    constexpr auto rel_energy_max = 10000.; // keV[m
+[31m-    constexpr auto Sn_atomic_number = 50;[m
+[31m-    constexpr auto Sn_mass = 123;[m
+[31m-    constexpr auto neutron_pdg = 2112;[m
+[31m-    gen->GetBeam().SetEnergyDistribution(R3BDistribution1D::Delta(beam_energy));[m
+[31m-    gen->SetErelDistribution(R3BDistribution1D::Flat(0., rel_energy_max));[m
+[31m-    gen->AddParticle(Sn_atomic_number, Sn_mass);[m
+[31m-    gen->AddParticle(neutron_pdg);[m
+[31m-    gen->EnableWhitelist();[m
+[31m-    gen->EnableWrite();[m
+[31m-    gen->AddParticleToWhitelist(neutron_pdg);[m
+[31m-    auto primGen = std::make_unique<FairPrimaryGenerator>();[m
+[31m-    primGen->AddGenerator(gen.release());[m
+[31m-[m
+     // auto boxGen = std::make_unique<FairBoxGenerator>(PID, multi->value());[m
+     // boxGen->SetXYZ(0, 0, 0.);[m
+     // boxGen->SetThetaRange(0., 3.);[m
+     // boxGen->SetPhiRange(0., 360.);[m
+     // boxGen->SetEkinRange(pEnergy->value(), pEnergy->value());[m
+[32m+[m[32m    // auto primGen = std::make_unique<FairPrimaryGenerator>();[m
+     // primGen->AddGenerator(boxGen.release());[m
+[32m+[m[32m    // run->SetGenerator(primGen.release());[m
+[32m+[m
+[32m+[m[32m    // Paula primary partical gen Test[m
+[32m+[m[32m    auto detector_box_size = ::R3B::Neuland::DetectorBoxSize{};[m
+[32m+[m[32m    auto const nDP = 13;[m
+[32m+[m[32m    detector_box_size.xmin = -R3B::Neuland::BarLength / 2;[m
+[32m+[m[32m    detector_box_size.xmax = R3B::Neuland::BarLength / 2;[m
+[32m+[m[32m    detector_box_size.ymin = -R3B::Neuland::BarLength / 2;[m
+[32m+[m[32m    detector_box_size.ymax = R3B::Neuland::BarLength / 2;[m
+[32m+[m[32m    detector_box_size.zmin = 1650.;[m
+[32m+[m[32m    detector_box_size.zmax = 1650. + (R3B::Neuland::BarSize_Z * nDP);[m
+[32m+[m
+[32m+[m[32m    auto angle_dist = R3B::Neuland::AngleDist{};[m
+[32m+[m[32m    auto energy_dist = R3B::Neuland::EnergyDist{};[m
+[32m+[m[32m    auto position_dist = R3B::Neuland::PositionDist{};[m
+[32m+[m
+[32m+[m[32m    auto const mean = 3000.;[m
+[32m+[m[32m    auto const sigma = 400.;[m
+[32m+[m[32m    energy_dist.set_mean_sigma(mean, sigma);[m
+[32m+[m
+[32m+[m[32m    position_dist.set_box_size(detector_box_size);[m
+[32m+[m
+[32m+[m[32m    auto CosmicMuonGenerator = R3B::Neuland::CreateTrackGenerator(angle_dist, energy_dist, position_dist);[m
+[32m+[m
+[32m+[m[32m    UInt_t seed = static_cast<UInt_t>(time(0));[m
+[32m+[m[32m    TRandom2 random_gen(seed);[m
+[32m+[m[32m    CosmicMuonGenerator->set_rd_engine(&random_gen);[m
+[32m+[m
+[32m+[m[32m    auto primGen = std::make_unique<FairPrimaryGenerator>();[m
+[32m+[m[32m    primGen->AddGenerator(CosmicMuonGenerator.release());[m
+     run->SetGenerator(primGen.release());[m
+ [m
+     // Geometry: Cave[m
+[36m@@ -102,7 +120,7 @@[m [mauto main(int argc, const char** argv) -> int[m
+     run->AddModule(cave.release());[m
+ [m
+     // Geometry: Neuland[m
+[31m-    auto const nDP = 13;[m
+[32m+[m[32m    // auto const nDP = 13;[m
+     auto const neulandGeoTrans = TGeoTranslation{ 0., 0., 1650. };[m
+     auto neuland = std::make_unique<R3BNeuland>(nDP, neulandGeoTrans);[m
+     run->AddModule(neuland.release());[m
+[1mdiff --git a/neuland/simulation/CMakeLists.txt b/neuland/simulation/CMakeLists.txt[m
+[1mindex 596d5b7d..fc270813 100644[m
+[1m--- a/neuland/simulation/CMakeLists.txt[m
+[1m+++ b/neuland/simulation/CMakeLists.txt[m
+[36m@@ -13,14 +13,11 @@[m [mset(SRCS[m
+     R3BNeulandPrimaryClusterFinder.cxx[m
+     R3BNeulandPrimaryInteractionFinder.cxx)[m
+ [m
+[31m-set(HEADERS[m
+[31m-    R3BNeuland.h[m
+[31m-    R3BNeulandMCMon.h[m
+[31m-    R3BNeulandPrimaryClusterFinder.h[m
+[31m-    R3BNeulandPrimaryInteractionFinder.h)[m
+[32m+[m[32mset(HEADERS R3BNeuland.h R3BNeulandMCMon.h R3BNeulandPrimaryClusterFinder.h[m
+[32m+[m[32m    R3BNeulandPrimaryInteractionFinder.h CosmicMuon.h CosmicMuonDistributions.h)[m
+ [m
+ add_library(R3BNeulandSimulation SHARED ${SRCS})[m
+[31m-target_include_directories(R3BNeulandSimulation PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})[m
+[32m+[m[32mtarget_include_directories(R3BNeulandSimulation PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/generator ${CMAKE_CURRENT_SOURCE_DIR})[m
+ target_link_libraries(R3BNeulandSimulation PUBLIC R3BNeulandShared R3BPassive)[m
+ root_generate_dictionary([m
+     R3BNeulandSimulation_dict[m
+[1mdiff --git a/neuland/simulation/generator/CosmicMuon.h b/neuland/simulation/generator/CosmicMuon.h[m
+[1mnew file mode 100644[m
+[1mindex 00000000..211a6d7e[m
+[1m--- /dev/null[m
+[1m+++ b/neuland/simulation/generator/CosmicMuon.h[m
+[36m@@ -0,0 +1,152 @@[m
+[32m+[m[32m/******************************************************************************[m
+[32m+[m[32m *   Copyright (C) 2019 GSI Helmholtzzentrum für Schwerionenforschung GmbH    *[m
+[32m+[m[32m *   Copyright (C) 2019-2024 Members of R3B Collaboration                     *[m
+[32m+[m[32m *                                                                            *[m
+[32m+[m[32m *             This software is distributed under the terms of the            *[m
+[32m+[m[32m *                 GNU General Public Licence (GPL) version 3,                *[m
+[32m+[m[32m *                    copied verbatim in the file "LICENSE".                  *[m
+[32m+[m[32m *                                                                            *[m
+[32m+[m[32m * In applying this license GSI does not waive the privileges and immunities  *[m
+[32m+[m[32m * granted to it by virtue of its status as an Intergovernmental Organization *[m
+[32m+[m[32m * or submit itself to any jurisdiction.                                      *[m
+[32m+[m[32m ******************************************************************************/[m
+[32m+[m
+[32m+[m[32m#pragma once[m
+[32m+[m[32m#include "FairPrimaryGenerator.h"[m
+[32m+[m[32m#include "RtypesCore.h"[m
+[32m+[m[32m#include "TRandom.h"[m
+[32m+[m[32m#include <FairGenerator.h>[m
+[32m+[m[32m#include <Math/GenVector/Cartesian3D.h>[m
+[32m+[m[32m#include <Math/GenVector/Polar3D.h>[m
+[32m+[m[32m#include <Math/GenVector/PxPyPzE4D.h>[m
+[32m+[m[32m#include <R3BNeulandCommon.h>[m
+[32m+[m[32m#include <TRandom3.h>[m
+[32m+[m[32m#include <cmath>[m
+[32m+[m[32m#include <fmt/format.h>[m
+[32m+[m[32m#include <memory>[m
+[32m+[m[32m#include <utility>[m
+[32m+[m
+[32m+[m[32mnamespace R3B::Neuland[m
+[32m+[m[32m{[m
+[32m+[m
+[32m+[m[32m    struct AngleInfo[m
+[32m+[m[32m    {[m
+[32m+[m[32m        double sin_phi{};[m
+[32m+[m[32m        double sin_theta{};[m
+[32m+[m[32m        double cos_phi{};[m
+[32m+[m[32m        double cos_theta{};[m
+[32m+[m[32m    };[m
+[32m+[m
+[32m+[m[32m    template <typename AngleDist, typename EnergyDist, typename PositionDist>[m
+[32m+[m[32m    class TrackGenerator : public FairGenerator[m
+[32m+[m[32m    {[m
+[32m+[m[32m      public:[m
+[32m+[m[32m        TrackGenerator(const AngleDist& angle_dist, const EnergyDist& energy_dist, const PositionDist& position_dist)[m
+[32m+[m[32m            : angle_dist_{ angle_dist }[m
+[32m+[m[32m            , energy_dist_{ energy_dist }[m
+[32m+[m[32m            , position_dist_{ position_dist }[m
+[32m+[m[32m        {[m
+[32m+[m[32m        }[m
+[32m+[m
+[32m+[m[32m        void set_detector_size(double detector_size) { detector_size_ = detector_size; }[m
+[32m+[m[32m        void set_rd_engine(TRandom* user_rd_engine) { rd_engine_ = user_rd_engine; }[m
+[32m+[m[32m        void set_PID(int PID) { PID_ = PID; };[m
+[32m+[m
+[32m+[m[32m      private:[m
+[32m+[m[32m        using MomentumPosition = std::pair<ROOT::Math::PxPyPzE4D<double>, ROOT::Math::Cartesian3D<double>>;[m
+[32m+[m[32m        using Momentum = ROOT::Math::PxPyPzE4D<double>;[m
+[32m+[m[32m        using AngleRadius = ROOT::Math::Polar3D<double>;[m
+[32m+[m[32m        static constexpr auto CLight = Neuland::CLight;[m
+[32m+[m[32m        double detector_size_{ 5000.0 };[m
+[32m+[m[32m        int PID_{ 13 };[m
+[32m+[m
+[32m+[m[32m        AngleDist angle_dist_{};[m
+[32m+[m[32m        EnergyDist energy_dist_{};[m
+[32m+[m[32m        PositionDist position_dist_{};[m
+[32m+[m[32m        TRandom* rd_engine_{ gRandom };[m
+[32m+[m
+[32m+[m[32m        auto rd_num_gen_angles(const AngleDist& angle_dist) -> AngleRadius;[m
+[32m+[m[32m        auto calculate_abs_momentum(const double& kinetic_energy) -> double { return kinetic_energy / CLight; };[m
+[32m+[m[32m        auto calculate_momentum_energy(const double& kinetic_energy, const AngleInfo& angle_info) -> Momentum;[m
+[32m+[m
+[32m+[m[32m        auto calculate_external_position_momentum(const AngleDist& angle_dist,[m
+[32m+[m[32m                                                  const EnergyDist& energy_dist,[m
+[32m+[m[32m                                                  const PositionDist& position_dist) -> MomentumPosition;[m
+[32m+[m
+[32m+[m[32m        auto ReadEvent(FairPrimaryGenerator* prim_gen) -> Bool_t override[m
+[32m+[m[32m        {[m
+[32m+[m
+[32m+[m[32m            auto position_momentum =[m
+[32m+[m[32m                MomentumPosition{ calculate_external_position_momentum(angle_dist_, energy_dist_, position_dist_) };[m
+[32m+[m[32m            prim_gen->AddTrack(PID_,[m
+[32m+[m[32m                               position_momentum.first.Px(),[m
+[32m+[m[32m                               position_momentum.first.Py(),[m
+[32m+[m[32m                               position_momentum.first.Pz(),[m
+[32m+[m[32m                               position_momentum.second.X(),[m
+[32m+[m[32m                               position_momentum.second.Y(),[m
+[32m+[m[32m                               position_momentum.second.Z());[m
+[32m+[m[32m            return true;[m
+[32m+[m[32m        };[m
+[32m+[m[32m    };[m
+[32m+[m
+[32m+[m[32m    template <typename AngleDist, typename EnergyDist, typename PositionDist>[m
+[32m+[m[32m    auto TrackGenerator<AngleDist, EnergyDist, PositionDist>::rd_num_gen_angles(const AngleDist& angle_dist)[m
+[32m+[m[32m        -> AngleRadius[m
+[32m+[m[32m    {[m
+[32m+[m[32m        auto angles = AngleRadius{};[m
+[32m+[m[32m        angles.SetPhi(rd_engine_->Uniform(0., 2 * M_PI));[m
+[32m+[m[32m        angles.SetTheta(angle_dist(rd_engine_));[m
+[32m+[m
+[32m+[m[32m        return angles;[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    template <typename AngleDist, typename EnergyDist, typename PositionDist>[m
+[32m+[m[32m    auto TrackGenerator<AngleDist, EnergyDist, PositionDist>::calculate_momentum_energy(const double& kinetic_energy,[m
+[32m+[m[32m                                                                                        const AngleInfo& angle_info)[m
+[32m+[m[32m        -> Momentum[m
+[32m+[m[32m    {[m
+[32m+[m[32m        auto momentum_energy = Momentum{ 0, 0, 0, kinetic_energy };[m
+[32m+[m[32m        auto abs_momentum = double{ calculate_abs_momentum(kinetic_energy) };[m
+[32m+[m[32m        momentum_energy.SetPx(abs_momentum * angle_info.sin_theta * angle_info.cos_phi);[m
+[32m+[m[32m        momentum_energy.SetPy(abs_momentum * angle_info.cos_theta);[m
+[32m+[m[32m        momentum_energy.SetPz(abs_momentum * angle_info.sin_theta * angle_info.sin_phi);[m
+[32m+[m[32m        return momentum_energy;[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    template <typename AngleDist, typename EnergyDist, typename PositionDist>[m
+[32m+[m[32m    auto TrackGenerator<AngleDist, EnergyDist, PositionDist>::calculate_external_position_momentum([m
+[32m+[m[32m        const AngleDist& angle_dist,[m
+[32m+[m[32m        const EnergyDist& energy_dist,[m
+[32m+[m[32m        const PositionDist& position_dist) -> MomentumPosition[m
+[32m+[m[32m    {[m
+[32m+[m[32m        auto const position = position_dist(rd_engine_);[m
+[32m+[m[32m        auto const angles = rd_num_gen_angles(angle_dist);[m
+[32m+[m[32m        auto const energy = energy_dist(rd_engine_);[m
+[32m+[m
+[32m+[m[32m        auto angle_info = AngleInfo{};[m
+[32m+[m[32m        angle_info.sin_phi = std::sin(angles.Phi());[m
+[32m+[m[32m        angle_info.cos_phi = std::cos(angles.Phi());[m
+[32m+[m[32m        angle_info.sin_theta = std::sin(angles.Theta());[m
+[32m+[m[32m        angle_info.cos_theta = std::cos(angles.Theta());[m
+[32m+[m
+[32m+[m[32m        auto position_momentum = MomentumPosition{};[m
+[32m+[m
+[32m+[m[32m        position_momentum.second.SetX(position.X() - angle_info.sin_theta * angle_info.cos_phi * detector_size_);[m
+[32m+[m[32m        position_momentum.second.SetY(position.Y() - angle_info.cos_theta * detector_size_);[m
+[32m+[m[32m        position_momentum.second.SetZ(position.Z() - angle_info.sin_theta * angle_info.sin_phi * detector_size_);[m
+[32m+[m[32m        position_momentum.first = calculate_momentum_energy(energy, angle_info);[m
+[32m+[m
+[32m+[m
+[32m+[m[32m        return position_momentum;[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    template <typename AngleDist, typename EnergyDist, typename PositionDist>[m
+[32m+[m[32m    auto CreateTrackGenerator(const AngleDist& angle_dist,[m
+[32m+[m[32m                              const EnergyDist& energy_dist,[m
+[32m+[m[32m                              const PositionDist& position_dist)[m
+[32m+[m[32m    {[m
+[32m+[m[32m        return std::make_unique<TrackGenerator<AngleDist, EnergyDist, PositionDist>>([m
+[32m+[m[32m            angle_dist, energy_dist, position_dist);[m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m} // namespace R3B::Neuland[m
+[1mdiff --git a/neuland/simulation/generator/CosmicMuonDistributions.h b/neuland/simulation/generator/CosmicMuonDistributions.h[m
+[1mnew file mode 100644[m
+[1mindex 00000000..e2b9de45[m
+[1m--- /dev/null[m
+[1m+++ b/neuland/simulation/generator/CosmicMuonDistributions.h[m
+[36m@@ -0,0 +1,98 @@[m
+[32m+[m[32m#pragma once[m
+[32m+[m[32m#include <Math/GenVector/Cartesian3D.h>[m
+[32m+[m[32m#include <R3BNeulandCommon.h>[m
+[32m+[m[32m#include <TRandom.h>[m
+[32m+[m
+[32m+[m[32mnamespace R3B::Neuland[m
+[32m+[m[32m{[m
+[32m+[m[32m    class EnergyDist[m
+[32m+[m[32m    {[m
+[32m+[m[32m      public:[m
+[32m+[m[32m        void set_mean_sigma(double mean, double sigma)[m
+[32m+[m[32m        {[m
+[32m+[m[32m            mean_ = mean;[m
+[32m+[m[32m            sigma_ = sigma;[m
+[32m+[m[32m        }[m
+[32m+[m
+[32m+[m[32m        auto operator()(TRandom* rd_engine_) const -> double[m
+[32m+[m[32m        {[m
+[32m+[m[32m            auto energy = rd_engine_->Gaus(mean_, sigma_);[m
+[32m+[m[32m            return energy;[m
+[32m+[m[32m        };[m
+[32m+[m
+[32m+[m[32m      private:[m
+[32m+[m[32m        double mean_{ 3000. };[m
+[32m+[m[32m        double sigma_{ 200. };[m
+[32m+[m[32m    };[m
+[32m+[m
+[32m+[m[32m    class AngleDist[m
+[32m+[m[32m    {[m
+[32m+[m[32m      public:[m
+[32m+[m[32m        double operator()(TRandom* rd_engine_) const[m
+[32m+[m[32m        {[m
+[32m+[m[32m            const auto n_steps = int{ 10000 };[m
+[32m+[m[32m            const auto step_size = 0.1;[m
+[32m+[m
+[32m+[m[32m            auto target_distribution = [](double x) -> double { return std::pow(std::cos(x), 2.); };[m
+[32m+[m
+[32m+[m[32m            double current_angle = 0.0;[m
+[32m+[m[32m            double new_angle;[m
+[32m+[m
+[32m+[m[32m            for (int i = 0; i < n_steps; ++i)[m
+[32m+[m[32m            {[m
+[32m+[m[32m                new_angle = rd_engine_->Gaus(current_angle, step_size);[m
+[32m+[m
+[32m+[m[32m                if (new_angle < -M_PI_2 || new_angle > M_PI_2)[m
+[32m+[m[32m                {[m
+[32m+[m[32m                    continue;[m
+[32m+[m[32m                }[m
+[32m+[m
+[32m+[m[32m                double acceptance_ratio = target_distribution(new_angle) / target_distribution(current_angle);[m
+[32m+[m
+[32m+[m[32m                if (rd_engine_->Uniform(0.0, 1.0) < acceptance_ratio)[m
+[32m+[m[32m                {[m
+[32m+[m[32m                    current_angle = new_angle;[m
+[32m+[m[32m                }[m
+[32m+[m[32m            }[m
+[32m+[m
+[32m+[m[32m            return current_angle;[m
+[32m+[m[32m        }[m
+[32m+[m[32m    };[m
+[32m+[m
+[32m+[m[32m    struct DetectorBoxSize[m
+[32m+[m[32m    {[m
+[32m+[m[32m      public:[m
+[32m+[m[32m        double xmin{};[m
+[32m+[m[32m        double xmax{};[m
+[32m+[m[32m        double ymin{};[m
+[32m+[m[32m        double ymax{};[m
+[32m+[m[32m        double zmin{};[m
+[32m+[m[32m        double zmax{};[m
+[32m+[m[32m    };[m
+[32m+[m
+[32m+[m[32m    class PositionDist[m
+[32m+[m[32m    {[m
+[32m+[m[32m      public:[m
+[32m+[m[32m        void set_box_size(DetectorBoxSize detector_box_size)[m
+[32m+[m[32m        {[m
+[32m+[m[32m            detector_box_size_.xmin = detector_box_size.xmin;[m
+[32m+[m[32m            detector_box_size_.xmax = detector_box_size.xmax;[m
+[32m+[m[32m            detector_box_size_.ymin = detector_box_size.ymin;[m
+[32m+[m[32m            detector_box_size_.ymax = detector_box_size.ymax;[m
+[32m+[m[32m            detector_box_size_.zmin = detector_box_size.zmin;[m
+[32m+[m[32m            detector_box_size_.zmax = detector_box_size.zmax;[m
+[32m+[m[32m        }[m
+[32m+[m
+[32m+[m[32m        auto operator()(TRandom* rd_engine_) const -> ROOT::Math::Cartesian3D<double>[m
+[32m+[m[32m        {[m
+[32m+[m[32m            auto box_positions = ROOT::Math::Cartesian3D<double>{};[m
+[32m+[m[32m            box_positions.SetX(rd_engine_->Uniform(detector_box_size_.xmin, detector_box_size_.xmax));[m
+[32m+[m[32m            box_positions.SetY(rd_engine_->Uniform(detector_box_size_.ymin, detector_box_size_.ymax));[m
+[32m+[m[32m            box_positions.SetZ(rd_engine_->Uniform(detector_box_size_.zmin, detector_box_size_.zmax));[m
+[32m+[m[32m            return box_positions;[m
+[32m+[m[32m        }[m
+[32m+[m
+[32m+[m[32m      private:[m
+[32m+[m[32m        DetectorBoxSize detector_box_size_{};[m
+[32m+[m[32m    };[m
+[32m+[m[32m} // namespace R3B::Neuland[m

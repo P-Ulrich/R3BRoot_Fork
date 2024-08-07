@@ -55,7 +55,7 @@ auto main(int argc, const char** argv) -> int
     auto paddleName =
         programOptions.create_option<std::string>("paddle", R"(set the paddle name. e.g. "neuland")", "neuland");
     auto channelName =
-        programOptions.create_option<std::string>("channel", R"(set the channel name. e.g. "tamex")", "tacquila");
+        programOptions.create_option<std::string>("channel", R"(set the channel name. e.g. "tamex")", "tamex");
     auto simuFileName =
         programOptions.create_option<std::string>("simuFile", "set the filename of simulation input", "simu.root");
     auto paraFileName =
@@ -69,7 +69,7 @@ auto main(int argc, const char** argv) -> int
     auto hitLevelPar =
         programOptions.create_option<std::string>("hitLevelPar", "set the name of hit level parameter if needed.", "");
 
-
+//Paula: Error not yet used in the code 
     auto errorcal = programOptions.create_option<bool>("errorCal", "usage of errors in calculations", false);
 
     if (!programOptions.verify(argc, argv))
@@ -99,6 +99,7 @@ auto main(int argc, const char** argv) -> int
     tamexParameter.fPMTThresh = 1.;
     tamexParameter.fTimeMin = 1.;
 
+    //Paula: CalData is only implimented in Tamex for now
     const auto neulandEngines = std::map<std::pair<const std::string, const std::string>,
                                          std::function<std::unique_ptr<Digitizing::DigitizingEngineInterface>()>>{
         { { "neuland", "tamex" },
