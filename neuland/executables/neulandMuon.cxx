@@ -145,8 +145,6 @@ auto main(int argc, const char** argv) -> int
     auto digiNeuland = std::make_unique<R3BNeulandDigitizerCalTask>();
     digiNeuland->SetEngine((neulandEngines.at({ paddleName(), channelName() }))());
     run->AddTask(digiNeuland.release());
-    auto hitmon = std::make_unique<R3BNeulandHitMon>();
-    run->AddTask(hitmon.release());
 
     run->Init();
     run->Run(0, eventNum());
