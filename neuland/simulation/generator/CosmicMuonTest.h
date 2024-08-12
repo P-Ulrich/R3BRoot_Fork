@@ -28,9 +28,6 @@
 
 namespace R3B::Neuland
 {
-    constexpr auto default_detector_size{5000.0};
-    constexpr auto default_PID{13};
-
     struct AngleInfo
     {
         double sin_phi{};
@@ -39,8 +36,21 @@ namespace R3B::Neuland
         double cos_theta{};
     };
 
+    constexpr auto default_detector_size{ 5000.0 };
+    constexpr auto default_PID{ 13 };
+
+    class BaseGenerator : public FairGenerator
+    {
+      public:
+        virtual ~BaseGenerator() = default;
+
+        virtual void set_detector_size(double detector_size) = 0;
+        virtual void set_rd_engine(TRandom* user_rd_engine) = 0;
+        virtual void set_PID(int PID) = 0;
+    };
+
     template <typename AngleDist, typename EnergyDist, typename PositionDist>
-    class TrackGenerator : public FairGenerator
+    class TrackGenerator : public BaseGenerator
     {
       public:
         TrackGenerator(const AngleDist& angle_dist, const EnergyDist& energy_dist, const PositionDist& position_dist)
@@ -50,9 +60,9 @@ namespace R3B::Neuland
         {
         }
 
-        void set_detector_size(double detector_size) { detector_size_ = detector_size; }
-        void set_rd_engine(TRandom* user_rd_engine) { rd_engine_ = user_rd_engine; }
-        void set_PID(int PID) { PID_ = PID; };
+        void set_detector_size(double detector_size) override { detector_size_ = detector_size; }
+        void set_rd_engine(TRandom* user_rd_engine) override { rd_engine_ = user_rd_engine; }
+        void set_PID(int PID) override { PID_ = PID; }
 
       private:
         using MomentumPosition = std::pair<ROOT::Math::PxPyPzE4D<double>, ROOT::Math::Cartesian3D<double>>;
@@ -67,6 +77,7 @@ namespace R3B::Neuland
         PositionDist position_dist_{};
         TRandom* rd_engine_{ gRandom };
 
+        // Paula: which methods have to be virtual?
         auto rd_num_gen_angles(const AngleDist& angle_dist) -> AngleRadius;
         auto calculate_abs_momentum(const double& kinetic_energy) -> double { return kinetic_energy / CLight; };
         auto calculate_momentum_energy(const double& kinetic_energy, const AngleInfo& angle_info) -> Momentum;
@@ -74,7 +85,6 @@ namespace R3B::Neuland
         auto calculate_external_position_momentum(const AngleDist& angle_dist,
                                                   const EnergyDist& energy_dist,
                                                   const PositionDist& position_dist) -> MomentumPosition;
-
         auto ReadEvent(FairPrimaryGenerator* prim_gen) -> Bool_t override
         {
 
@@ -89,9 +99,6 @@ namespace R3B::Neuland
                                position_momentum.second.Z());
             return true;
         };
-
-      // public:
-      //   ClassDefOverride(TrackGenerator, 1); // NOLINT
     };
 
     template <typename AngleDist, typename EnergyDist, typename PositionDist>
@@ -144,13 +151,62 @@ namespace R3B::Neuland
         return position_momentum;
     }
 
-    template <typename AngleDist, typename EnergyDist, typename PositionDist>
-    auto CreateTrackGenerator(const AngleDist& angle_dist,
-                              const EnergyDist& energy_dist,
-                              const PositionDist& position_dist)
-    {
-        return std::make_unique<TrackGenerator<AngleDist, EnergyDist, PositionDist>>(
-            angle_dist, energy_dist, position_dist);
-    }
+    // class CreateTrackGenerator
+    // {
+    //   public:
+    //     template <typename AngleDist, typename EnergyDist, typename PositionDist>
+    //     CreateTrackGenerator(AngleDist angle_dist, EnergyDist energy_dist, PositionDist position_dist)
+    //     {
+    //         return ptr_{ std::make_unique<TrackGenerator<AngleDist, EnergyDist, PositionDist>>(
+    //             angle_dist, energy_dist, position_dist) };
+    //     }
+    //     // : ptr_{ std::make_unique<TrackGenerator<AngleDist, EnergyDist, PositionDist>>(angle_dist,
+    //     //                                                                               energy_dist,
+    //     //                                                                               position_dist) }
+    //     // auto ReadEvent(FairPrimaryGenerator* prim_gen) -> Bool_t { ptr_->ReadEvent(prim_gen); }
+    //     // void set_detector_size(double detector_size) { ptr_->set_detector_size(detector_size); }
+    //     // void set_rd_engine(TRandom* user_rd_engine) { ptr_->set_rd_engine(user_rd_engine); }
+    //     // void set_PID(int PID) { ptr_->set_PID(PID); }
+    //
+    //   private:
+    //     std::unique_ptr<BaseGenerator> ptr_;
+    // };
+    //
 
-} // namespace R3B::Neuland
+    // class PtrTrackGenerator
+    // {
+    //   public:
+    //     template <typename AngleDist, typename EnergyDist, typename PositionDist>
+    //     PtrTrackGenerator(AngleDist angle_dist, EnergyDist energy_dist, PositionDist position_dist)
+    //         : ptr_{ std::make_unique<TrackGenerator<AngleDist, EnergyDist, PositionDist>>(angle_dist,
+    //                                                                                       energy_dist,
+    //                                                                                       position_dist) }
+    //     {
+    //     }
+    //     // auto ReadEvent(FairPrimaryGenerator* prim_gen) -> Bool_t { ptr_->ReadEvent(prim_gen); }
+    //     // void set_detector_size(double detector_size) { ptr_->set_detector_size(detector_size); }
+    //     // void set_rd_engine(TRandom* user_rd_engine) { ptr_->set_rd_engine(user_rd_engine); }
+    //     // void set_PID(int PID) { ptr_->set_PID(PID); }
+    //
+    //     BaseGenerator* get_ptr() { return ptr_.get(); }
+    //
+    //   private:
+    //     std::unique_ptr<BaseGenerator> ptr_;
+    // };
+
+    // template <typename AngleDist, typename EnergyDist, typename PositionDist>
+    // auto CreateTrackGenerator(const AngleDist& angle_dist,
+    //                           const EnergyDist& energy_dist,
+    //                           const PositionDist& position_dist)
+    // {
+    //     auto placeholder = PtrTrackGenerator(angle_dist, energy_dist, position_dist);
+    //     return placeholder.get_ptr();
+    // }
+
+    template <typename AngleDist, typename EnergyDist, typename PositionDist>
+    auto CreateTrackGenerator(const AngleDist& angle_dist, const EnergyDist& energy_dist, const PositionDist& position_dist)
+    {
+        std::unique_ptr<BaseGenerator> ptr_;
+        ptr_=std::make_unique<TrackGenerator<AngleDist, EnergyDist, PositionDist>>(angle_dist, energy_dist, position_dist);
+return ptr_;}
+    } // namespace R3B::Neuland
