@@ -1,4 +1,4 @@
-#include "CosmicMuonTest.h"
+#include "CosmicMuon.h"
 #include "CosmicMuonDistributions.h"
 #include "FairBoxGenerator.h"
 #include "FairParRootFileIo.h"

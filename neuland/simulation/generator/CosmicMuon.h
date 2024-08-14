@@ -28,9 +28,6 @@
 
 namespace R3B::Neuland
 {
-    constexpr auto default_detector_size{5000.0};
-    constexpr auto default_PID{13};
-
     struct AngleInfo
     {
         double sin_phi{};
@@ -39,20 +36,31 @@ namespace R3B::Neuland
         double cos_theta{};
     };
 
-    template <typename AngleDist, typename EnergyDist, typename PositionDist>
-    class TrackGenerator : public FairGenerator
+    constexpr auto default_detector_size{ 5000.0 };
+    constexpr auto default_PID{ 13 };
+
+    class TrackGeneratorAbstract : public FairGenerator
     {
       public:
-        TrackGenerator(const AngleDist& angle_dist, const EnergyDist& energy_dist, const PositionDist& position_dist)
+        virtual void set_detector_size(double detector_size) = 0;
+        virtual void set_rd_engine(TRandom* user_rd_engine) = 0;
+        virtual void set_PID(int PID) = 0;
+    };
+
+    template <typename AngleDist, typename EnergyDist, typename PositionDist>
+    class TrackGeneratorImp : public TrackGeneratorAbstract
+    {
+      public:
+        TrackGeneratorImp(const AngleDist& angle_dist, const EnergyDist& energy_dist, const PositionDist& position_dist)
             : angle_dist_{ angle_dist }
             , energy_dist_{ energy_dist }
             , position_dist_{ position_dist }
         {
         }
 
-        void set_detector_size(double detector_size) { detector_size_ = detector_size; }
-        void set_rd_engine(TRandom* user_rd_engine) { rd_engine_ = user_rd_engine; }
-        void set_PID(int PID) { PID_ = PID; };
+        void set_detector_size(double detector_size) override { detector_size_ = detector_size; }
+        void set_rd_engine(TRandom* user_rd_engine) override { rd_engine_ = user_rd_engine; }
+        void set_PID(int PID) override { PID_ = PID; }
 
       private:
         using MomentumPosition = std::pair<ROOT::Math::PxPyPzE4D<double>, ROOT::Math::Cartesian3D<double>>;
@@ -67,6 +75,7 @@ namespace R3B::Neuland
         PositionDist position_dist_{};
         TRandom* rd_engine_{ gRandom };
 
+        // Paula: which methods have to be virtual?
         auto rd_num_gen_angles(const AngleDist& angle_dist) -> AngleRadius;
         auto calculate_abs_momentum(const double& kinetic_energy) -> double { return kinetic_energy / CLight; };
         auto calculate_momentum_energy(const double& kinetic_energy, const AngleInfo& angle_info) -> Momentum;
@@ -74,7 +83,6 @@ namespace R3B::Neuland
         auto calculate_external_position_momentum(const AngleDist& angle_dist,
                                                   const EnergyDist& energy_dist,
                                                   const PositionDist& position_dist) -> MomentumPosition;
-
         auto ReadEvent(FairPrimaryGenerator* prim_gen) -> Bool_t override
         {
 
@@ -89,13 +97,10 @@ namespace R3B::Neuland
                                position_momentum.second.Z());
             return true;
         };
-
-      // public:
-      //   ClassDefOverride(TrackGenerator, 1); // NOLINT
     };
 
     template <typename AngleDist, typename EnergyDist, typename PositionDist>
-    auto TrackGenerator<AngleDist, EnergyDist, PositionDist>::rd_num_gen_angles(const AngleDist& angle_dist)
+    auto TrackGeneratorImp<AngleDist, EnergyDist, PositionDist>::rd_num_gen_angles(const AngleDist& angle_dist)
         -> AngleRadius
     {
         auto angles = AngleRadius{};
@@ -106,8 +111,8 @@ namespace R3B::Neuland
     }
 
     template <typename AngleDist, typename EnergyDist, typename PositionDist>
-    auto TrackGenerator<AngleDist, EnergyDist, PositionDist>::calculate_momentum_energy(const double& kinetic_energy,
-                                                                                        const AngleInfo& angle_info)
+    auto TrackGeneratorImp<AngleDist, EnergyDist, PositionDist>::calculate_momentum_energy(const double& kinetic_energy,
+                                                                                           const AngleInfo& angle_info)
         -> Momentum
     {
         auto momentum_energy = Momentum{ 0, 0, 0, kinetic_energy };
@@ -119,7 +124,7 @@ namespace R3B::Neuland
     }
 
     template <typename AngleDist, typename EnergyDist, typename PositionDist>
-    auto TrackGenerator<AngleDist, EnergyDist, PositionDist>::calculate_external_position_momentum(
+    auto TrackGeneratorImp<AngleDist, EnergyDist, PositionDist>::calculate_external_position_momentum(
         const AngleDist& angle_dist,
         const EnergyDist& energy_dist,
         const PositionDist& position_dist) -> MomentumPosition
@@ -144,13 +149,38 @@ namespace R3B::Neuland
         return position_momentum;
     }
 
+    class TrackGenerator : public FairGenerator
+    {
+      public:
+        template <typename AngleDist, typename EnergyDist, typename PositionDist>
+        TrackGenerator(AngleDist angle_dist, EnergyDist energy_dist, PositionDist position_dist)
+            : ptr_{ std::make_unique<TrackGeneratorImp<AngleDist, EnergyDist, PositionDist>>(angle_dist,
+                                                                                             energy_dist,
+                                                                                             position_dist) }
+        {
+        }
+        void set_detector_size(double detector_size) { ptr_->set_detector_size(detector_size); }
+        void set_rd_engine(TRandom* user_rd_engine) { ptr_->set_rd_engine(user_rd_engine); }
+        void set_PID(int PID) { ptr_->set_PID(PID); }
+
+        auto get_ptr() -> TrackGeneratorAbstract* { return ptr_.get(); }
+
+      private:
+        std::unique_ptr<TrackGeneratorAbstract> ptr_; //!
+        auto ReadEvent(FairPrimaryGenerator* prim_gen) -> Bool_t override
+        {
+            ptr_->ReadEvent(prim_gen);
+            return true;
+        }
+
+        ClassDefOverride(TrackGenerator, 1); // NOLINT
+    };
+
     template <typename AngleDist, typename EnergyDist, typename PositionDist>
     auto CreateTrackGenerator(const AngleDist& angle_dist,
                               const EnergyDist& energy_dist,
                               const PositionDist& position_dist)
     {
-        return std::make_unique<TrackGenerator<AngleDist, EnergyDist, PositionDist>>(
-            angle_dist, energy_dist, position_dist);
+        return std::make_unique<TrackGenerator>(angle_dist, energy_dist, position_dist);
     }
-
 } // namespace R3B::Neuland
