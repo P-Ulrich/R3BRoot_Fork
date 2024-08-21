@@ -85,14 +85,21 @@ auto main(int argc, const char** argv) -> int
     // run->SetGenerator(primGen.release());
 
     // Paula primary partical gen Test
+    auto z_pos =double{0.};
     auto detector_box_size = ::R3B::Neuland::DetectorBoxSize{};
     auto const nDP = 13;
-    detector_box_size.xmin = -R3B::Neuland::BarLength / 2;
-    detector_box_size.xmax = R3B::Neuland::BarLength / 2;
-    detector_box_size.ymin = -R3B::Neuland::BarLength / 2;
-    detector_box_size.ymax = R3B::Neuland::BarLength / 2;
-    detector_box_size.zmin = 1650.;
-    detector_box_size.zmax = 1650. + (R3B::Neuland::BarSize_Z * nDP);
+    detector_box_size.xmin = 0;
+    detector_box_size.xmax = 0;
+    detector_box_size.ymin = 0;
+    detector_box_size.ymax = 0;
+    detector_box_size.zmin = z_pos;
+    detector_box_size.zmax = z_pos+ (2 * R3B::Neuland::BarSize_Z * nDP);
+    // detector_box_size.xmin = -R3B::Neuland::BarLength / 2;
+    // detector_box_size.xmax = R3B::Neuland::BarLength / 2;
+    // detector_box_size.ymin = -R3B::Neuland::BarLength / 2;
+    // detector_box_size.ymax = R3B::Neuland::BarLength / 2;
+    // detector_box_size.zmin = 1650.;
+    // detector_box_size.zmax = 1650. + (2 * R3B::Neuland::BarSize_Z * nDP);
 
     auto angle_dist = R3B::Neuland::AngleDist{};
     auto energy_dist = R3B::Neuland::EnergyDist{};
@@ -100,8 +107,8 @@ auto main(int argc, const char** argv) -> int
 
     // auto const mean = 3000.;
     // auto const sigma = 400.;
-    auto const mean = 1000.;
-    auto const sigma = 200;
+    auto const mean = 10.;
+    auto const sigma = 2;
     energy_dist.set_mean_sigma(mean, sigma);
 
     position_dist.set_box_size(detector_box_size);
@@ -123,7 +130,7 @@ auto main(int argc, const char** argv) -> int
 
     // Geometry: Neuland
     // auto const nDP = 13;
-    auto const neulandGeoTrans = TGeoTranslation{ 0., 0., 1650. };
+    auto const neulandGeoTrans = TGeoTranslation{ 0., 0., z_pos };
     auto neuland = std::make_unique<R3BNeuland>(nDP, neulandGeoTrans);
     run->AddModule(neuland.release());
 

@@ -23,6 +23,7 @@
 #include <TRandom3.h>
 #include <cmath>
 #include <fmt/format.h>
+#include <iostream>
 #include <memory>
 #include <utility>
 
@@ -36,7 +37,7 @@ namespace R3B::Neuland
         double cos_theta{};
     };
 
-    constexpr auto default_detector_size{ 5000.0 };
+    constexpr auto default_detector_size{ 500.0 };
     constexpr auto default_PID{ 13 };
 
     class TrackGeneratorAbstract : public FairGenerator
@@ -130,6 +131,10 @@ namespace R3B::Neuland
         const PositionDist& position_dist) -> MomentumPosition
     {
         auto const position = position_dist(rd_engine_);
+        // //cout looking for errors
+        // std::cout << "x Posistion: "<< position.X()<<"\n";
+        // std::cout << "y Posistion: "<< position.Y()<<"\n";
+        // std::cout << "z Posistion: "<< position.Z()<<"\n";
         auto const angles = rd_num_gen_angles(angle_dist);
         auto const energy = energy_dist(rd_engine_);
 
