@@ -98,8 +98,10 @@ auto main(int argc, const char** argv) -> int
     auto energy_dist = R3B::Neuland::EnergyDist{};
     auto position_dist = R3B::Neuland::PositionDist{};
 
-    auto const mean = 3000.;
-    auto const sigma = 400.;
+    // auto const mean = 3000.;
+    // auto const sigma = 400.;
+    auto const mean = 1000.;
+    auto const sigma = 200;
     energy_dist.set_mean_sigma(mean, sigma);
 
     position_dist.set_box_size(detector_box_size);

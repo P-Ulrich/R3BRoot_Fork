@@ -39,18 +39,18 @@ namespace R3B::Neuland
     struct CalData : public TObject
     {
         int bar_module{};                // ns
-        double leading_time_left{};         // ns
-        double leading_time_right{};        // ns
-        double time_over_threshold_left{};  // ns
-        double time_over_threshold_right{}; // ns
+        double let_l{};         // ns
+        double let_r{};        // ns
+        double tot_l{};  // ns
+        double tot_r{}; // ns
         CalData() = default;
         CalData(Int_t paddleid, double totL, double totR, double tleL, double tleR):
        
             bar_module{paddleid},
-            leading_time_left{totL},
-            leading_time_right{totR},
-            time_over_threshold_left{tleL},
-            time_over_threshold_right{tleR}
+            tot_l{totL},
+            tot_r{totR},
+            let_l{tleL},
+            let_r{tleR}
             {}
         ClassDefNV(CalData, 1);
     };
@@ -74,10 +74,10 @@ class R3BNeulandDigitizerCalTask : public FairTask
     template <typename Type>
     using UsePaddle = Digitizing::UsePaddle<Type>;
 
-    explicit R3BNeulandDigitizerCalTask(TString input = "NeulandPoints", TString output = "NeulandHits");
+    explicit R3BNeulandDigitizerCalTask(TString input = "NeulandPoints", TString output = "NeulandSimCal");
     explicit R3BNeulandDigitizerCalTask(std::unique_ptr<Digitizing::DigitizingEngineInterface> engine,
                                         TString input = "NeulandPoints",
-                                        TString output = "NeulandHits");
+                                        TString output = "NeulandSimCal");
 
     void SetEngine(std::unique_ptr<Digitizing::DigitizingEngineInterface> engine);
     void AddFilter(const Filterable<R3B::Neuland::CalData&>::Filter& filter) { fHitFilters.Add(filter); }
