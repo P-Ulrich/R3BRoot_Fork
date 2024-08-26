@@ -85,15 +85,15 @@ auto main(int argc, const char** argv) -> int
     // run->SetGenerator(primGen.release());
 
     // Paula primary partical gen Test
-    auto z_pos =double{0.};
+    auto z_pos = double{ 0. };
     auto detector_box_size = ::R3B::Neuland::DetectorBoxSize{};
     auto const nDP = 13;
-    detector_box_size.xmin = 0;
-    detector_box_size.xmax = 0;
-    detector_box_size.ymin = 0;
-    detector_box_size.ymax = 0;
-    detector_box_size.zmin = z_pos;
-    detector_box_size.zmax = z_pos+ (2 * R3B::Neuland::BarSize_Z * nDP);
+    detector_box_size.xmin = -R3B::Neuland::BarLength / 2;
+    detector_box_size.xmax = R3B::Neuland::BarLength / 2;
+    detector_box_size.ymin = -R3B::Neuland::BarLength / 2;
+    detector_box_size.ymax = R3B::Neuland::BarLength / 2;
+    detector_box_size.zmin = z_pos - (R3B::Neuland::BarSize_Z * nDP);
+    detector_box_size.zmax = z_pos + (R3B::Neuland::BarSize_Z * nDP);
     // detector_box_size.xmin = -R3B::Neuland::BarLength / 2;
     // detector_box_size.xmax = R3B::Neuland::BarLength / 2;
     // detector_box_size.ymin = -R3B::Neuland::BarLength / 2;

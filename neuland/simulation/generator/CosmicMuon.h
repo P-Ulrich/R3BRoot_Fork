@@ -19,11 +19,11 @@
 #include <Math/GenVector/Cartesian3D.h>
 #include <Math/GenVector/Polar3D.h>
 #include <Math/GenVector/PxPyPzE4D.h>
+#include <R3BIOConnector.h>
 #include <R3BNeulandCommon.h>
 #include <TRandom3.h>
 #include <cmath>
 #include <fmt/format.h>
-#include <iostream>
 #include <memory>
 #include <utility>
 
@@ -37,13 +37,29 @@ namespace R3B::Neuland
         double cos_theta{};
     };
 
-    constexpr auto default_detector_size{ 500.0 };
+    struct MuonTrackInfo
+    {
+        ROOT::Math::PxPyPzE4D<double> momentum;
+        ROOT::Math::Cartesian3D<double> position;
+
+        ClassDefNV(MuonTrackInfo, 1);
+    };
+
+    constexpr auto default_detector_size{ 200.0 };
     constexpr auto default_PID{ 13 };
 
-    class TrackGeneratorAbstract : public FairGenerator
+    class TrackGeneratorAbstract
     {
       public:
+        TrackGeneratorAbstract() = default;
+        TrackGeneratorAbstract(const TrackGeneratorAbstract&) = default;
+        TrackGeneratorAbstract(TrackGeneratorAbstract&&) = default;
+        auto operator=(const TrackGeneratorAbstract&) -> TrackGeneratorAbstract& = default;
+        auto operator=(TrackGeneratorAbstract&&) -> TrackGeneratorAbstract& = default;
+        virtual ~TrackGeneratorAbstract() = default;
+
         virtual void set_detector_size(double detector_size) = 0;
+        virtual auto ReadEvent(FairPrimaryGenerator* prim_gen) -> bool = 0;
         virtual void set_rd_engine(TRandom* user_rd_engine) = 0;
         virtual void set_PID(int PID) = 0;
     };
@@ -57,6 +73,7 @@ namespace R3B::Neuland
             , energy_dist_{ energy_dist }
             , position_dist_{ position_dist }
         {
+            muon_track_output_.init();
         }
 
         void set_detector_size(double detector_size) override { detector_size_ = detector_size; }
@@ -71,6 +88,7 @@ namespace R3B::Neuland
         double detector_size_{ default_detector_size };
         int PID_{ default_PID };
 
+        R3B::OutputVectorConnector<MuonTrackInfo> muon_track_output_{ "muon_track_info" };
         AngleDist angle_dist_{};
         EnergyDist energy_dist_{};
         PositionDist position_dist_{};
@@ -84,18 +102,21 @@ namespace R3B::Neuland
         auto calculate_external_position_momentum(const AngleDist& angle_dist,
                                                   const EnergyDist& energy_dist,
                                                   const PositionDist& position_dist) -> MomentumPosition;
-        auto ReadEvent(FairPrimaryGenerator* prim_gen) -> Bool_t override
+        auto ReadEvent(FairPrimaryGenerator* prim_gen) -> bool override
         {
-
-            auto position_momentum =
+            muon_track_output_.clear();
+            auto& muon_track = muon_track_output_.get().emplace_back();
+            auto momentum_position =
                 MomentumPosition{ calculate_external_position_momentum(angle_dist_, energy_dist_, position_dist_) };
+            muon_track.momentum = momentum_position.first;
+            muon_track.position = momentum_position.second;
             prim_gen->AddTrack(PID_,
-                               position_momentum.first.Px(),
-                               position_momentum.first.Py(),
-                               position_momentum.first.Pz(),
-                               position_momentum.second.X(),
-                               position_momentum.second.Y(),
-                               position_momentum.second.Z());
+                               momentum_position.first.Px(),
+                               momentum_position.first.Py(),
+                               momentum_position.first.Pz(),
+                               momentum_position.second.X(),
+                               momentum_position.second.Y(),
+                               momentum_position.second.Z());
             return true;
         };
     };

@@ -25,5 +25,7 @@
 #pragma link C++ class R3BNeulandPrimaryClusterFinder+;
 #pragma link C++ class R3BNeulandPrimaryInteractionFinder+;
 #pragma link C++ class R3B::Neuland::TrackGenerator+;
+#pragma link C++ class R3B::Neuland::MuonTrackInfo+;
+#pragma link C++ class vector<R3B::Neuland::MuonTrackInfo>+;
 
 #endif
