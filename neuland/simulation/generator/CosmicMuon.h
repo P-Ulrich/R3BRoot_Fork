@@ -45,7 +45,7 @@ namespace R3B::Neuland
         ClassDefNV(MuonTrackInfo, 1);
     };
 
-    constexpr auto default_detector_size{ 200.0 };
+    constexpr auto default_detector_size{ 100.0 };
     constexpr auto default_PID{ 13 };
 
     class TrackGeneratorAbstract

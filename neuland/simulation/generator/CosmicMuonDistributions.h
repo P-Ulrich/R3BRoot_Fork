@@ -21,8 +21,8 @@ namespace R3B::Neuland
         };
 
       private:
-        double mean_{ 3000. };
-        double sigma_{ 200. };
+        double mean_{ 30. };
+        double sigma_{ 2. };
     };
 
     class AngleDist
