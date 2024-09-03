@@ -256,8 +256,9 @@ namespace R3B::Digitizing::Neuland::Tamex
         signal.tot = CalculateTOT(qdc);
         signal.tle = peakTime;
         signal.side = this->GetSide();
-        LOG(debug) << "R3BDigitizingTamex: Create a Cal signal with time over threshold " << signal.tot
-                   << " and leading edge time " << signal.tle << std::endl;
+        LOG(debug) << "R3BDigitizingTamex: Create a CalSignal with tot " << signal.tot << " and let " << signal.tle
+                   << std::endl
+                   << " qdc: " << qdc << std::endl;
         return signal;
     }
 
@@ -436,18 +437,14 @@ namespace R3B::Digitizing::Neuland::Tamex
         return cal_signals;
     }
 
-    auto Channel::GetCalSignals() ->  CalSignals 
-
-    {
-        return ConstructCalSignals();
-    }
+    auto Channel::GetCalSignals() -> CalSignals { return ConstructCalSignals(); }
 
     auto Channel::GetFQTPeaks() -> const std::vector<FQTPeak>&
     {
 
         if (!Is_ValidSignals())
         {
-             ConstructSignals(); 
+            ConstructSignals();
         }
         return fqt_peaks_;
     }
@@ -456,7 +453,7 @@ namespace R3B::Digitizing::Neuland::Tamex
     {
         if (!Is_ValidSignals())
         {
-             ConstructSignals(); 
+            ConstructSignals();
         }
         return pmt_peaks_;
     }
