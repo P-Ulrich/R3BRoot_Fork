@@ -126,11 +126,8 @@ namespace R3B::Neuland
         -> AngleRadius
     {
         auto angles = AngleRadius{};
-        // angles.SetPhi(rd_engine_->Uniform(0., 2 * M_PI));
-        // angles.SetTheta(angle_dist(rd_engine_));
-
-        angles.SetPhi(0);
-        angles.SetTheta(0);
+        angles.SetPhi(rd_engine_->Uniform(0., 2 * M_PI));
+        angles.SetTheta(angle_dist(rd_engine_));
 
         return angles;
     }

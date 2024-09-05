@@ -107,7 +107,7 @@ auto main(int argc, const char** argv) -> int
 
     // auto const mean = 3000.;
     // auto const sigma = 400.;
-    auto const mean = 100.;
+    auto const mean = 10.;
     auto const sigma = 0.2;
     energy_dist.set_mean_sigma(mean, sigma);
 

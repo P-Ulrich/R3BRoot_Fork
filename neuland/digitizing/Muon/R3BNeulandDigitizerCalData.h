@@ -74,21 +74,21 @@ class R3BNeulandDigitizerCalTask : public FairTask
     template <typename Type>
     using UsePaddle = Digitizing::UsePaddle<Type>;
 
-    explicit R3BNeulandDigitizerCalTask(TString input = "NeulandPoints", TString output = "NeulandHits");
+    explicit R3BNeulandDigitizerCalTask(TString input = "NeulandPoints", TString output = "NeulandSimCal");
     explicit R3BNeulandDigitizerCalTask(std::unique_ptr<Digitizing::DigitizingEngineInterface> engine,
                                         TString input = "NeulandPoints",
-                                        TString output = "NeulandHits");
+                                        TString output = "NeulandSimCal");
 
     void SetEngine(std::unique_ptr<Digitizing::DigitizingEngineInterface> engine);
-    void AddFilter(const Filterable<R3BNeulandHit&>::Filter& filter) { fHitFilters.Add(filter); }
+    void AddFilter(const Filterable<R3B::Neuland::CalData&>::Filter& filter) { fHitFilters.Add(filter); }
 
   private:
     TCAInputConnector<R3BNeulandPoint> fPoints;
-    TCAOutputConnector<R3BNeulandHit> fHits;
+    TCAOutputConnector<R3B::Neuland::CalData> fHits;
 
     std::unique_ptr<Digitizing::DigitizingEngineInterface> fDigitizingEngine; // owning
 
-    Filterable<R3BNeulandHit&> fHitFilters;
+    Filterable<R3B::Neuland::CalData&> fHitFilters;
 
     R3BNeulandGeoPar* fNeulandGeoPar = nullptr; // non-owning
                                                 //
