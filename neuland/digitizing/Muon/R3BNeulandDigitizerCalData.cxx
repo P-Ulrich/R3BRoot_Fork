@@ -27,21 +27,20 @@
 #include <R3BShared.h>
 #include <TFile.h>
 #include <iostream>
+#include <range/v3/view.hpp>
 #include <stdexcept>
 #include <utility>
-#include <range/v3/view.hpp>
-
 
 R3BNeulandDigitizerCalTask::R3BNeulandDigitizerCalTask(TString input, TString output)
     : R3BNeulandDigitizerCalTask(Digitizing::CreateEngine(UsePaddle<NeulandPaddle>(), UseChannel<TacquilaChannel>()),
-                          std::move(input),
-                          std::move(output))
+                                 std::move(input),
+                                 std::move(output))
 {
 }
 
 R3BNeulandDigitizerCalTask::R3BNeulandDigitizerCalTask(std::unique_ptr<Digitizing::DigitizingEngineInterface> engine,
-                                         TString input,
-                                         TString output)
+                                                       TString input,
+                                                       TString output)
     : FairTask("R3BNeulandDigitizerCalData")
     , fPoints(std::move(input))
     , fHits(std::move(output))
@@ -120,22 +119,18 @@ void R3BNeulandDigitizerCalTask::Exec(Option_t* /*option*/)
             const Double_t dist = converted_position.X();
             fDigitizingEngine->DepositLight(paddleID, point->GetTime(), point->GetLightYield() * GeVToMeVFac, dist);
             paddleEnergyDeposit[paddleID] += point->GetEnergyLoss() * GeVToMeVFac;
+            // LOG(error) << "Points: Id " << paddleID << " time " << point->GetTime() << " light "
+            //            << point->GetLightYield() * GeVToMeVFac << std::endl;
         } // eloss
-    }     // points
 
-    const Double_t triggerTime = fDigitizingEngine->GetTriggerTime();
+    } // points
+        for (auto [paddleID, eDepo] : paddleEnergyDeposit)
+        {
+            LOG(error) << "Points: Id " << paddleID << " energydepo " << eDepo << std::endl;
+        }
     const auto paddles = fDigitizingEngine->ExtractPaddles();
 
-    // Fill control histograms
-    hMultOne->Fill(static_cast<int>(std::count_if(
-        paddles.begin(), paddles.end(), [](const auto& keyValue) { return keyValue.second->HasHalfFired(); })));
-
-    hMultTwo->Fill(static_cast<int>(std::count_if(
-        paddles.begin(), paddles.end(), [](const auto& keyValue) { return keyValue.second->HasFired(); })));
-
-    hRLTimeToTrig->Fill(triggerTime);
-
-    // Create Hits
+    // Create CalHits
     for (const auto& [paddleID, paddle] : paddles)
     {
         if (!paddle->HasFired())
@@ -149,22 +144,19 @@ void R3BNeulandDigitizerCalTask::Exec(Option_t* /*option*/)
         auto left_channel_signals = left_channel.GetCalSignals();
         auto right_channel_signals = right_channel.GetCalSignals();
 
-            for(const auto& [left, right] : ranges::zip_view(left_channel_signals, right_channel_signals))
+        for (const auto& [left, right] : ranges::zip_view(left_channel_signals, right_channel_signals))
         {
 
-            auto cal_data = R3B::Neuland::CalData{ paddleID,
-                                               left.tot,
-                                               right.tot,
-                                               left.tle,
-                                               right.tle };
+            auto cal_data = R3B::Neuland::CalData{ paddleID, left.tot, right.tot, left.tle, right.tle };
 
             if (fHitFilters.IsValid(cal_data))
             {
                 fHits.Insert(std::move(cal_data));
-                LOG(debug) << "Adding neuland cal with id = " << paddleID;
+                LOG(error) << "Adding cal with id = " << paddleID << " left tot " << left.tot << " right tot "
+                           << right.tot << std::endl;
             }
         } // loop over all hits for each paddle
-    }     // loop over paddles
+    } // loop over paddles
 
     LOG(debug) << "R3BNeulandDigitizerCalData: produced " << fHits.Size() << " hits";
 }

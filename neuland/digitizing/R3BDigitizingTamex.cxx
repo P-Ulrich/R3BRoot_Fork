@@ -236,6 +236,8 @@ namespace R3B::Digitizing::Neuland::Tamex
         auto peakTime = peak.GetLETime();
         auto qdc = ToQdc(peakQdc);
 
+        LOG(debug) << "qdc Signal " << qdc << " and tdc " << peakTime << std::endl;
+
         auto signal = Signal{};
         signal.qdcUnSat = ToUnSatQdc(qdc);
         signal.qdc = qdc;
@@ -251,6 +253,8 @@ namespace R3B::Digitizing::Neuland::Tamex
         auto peakQdc = peak.GetQDC();
         auto peakTime = peak.GetLETime();
         auto qdc = ToQdc(peakQdc);
+
+        LOG(error) << "qdc Cal " << qdc << " and tdc " << peakTime << std::endl;
 
         auto signal = CalSignal{};
         signal.tot = CalculateTOT(qdc);
