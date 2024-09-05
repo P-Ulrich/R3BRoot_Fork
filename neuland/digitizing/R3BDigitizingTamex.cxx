@@ -254,7 +254,7 @@ namespace R3B::Digitizing::Neuland::Tamex
         auto peakTime = peak.GetLETime();
         auto qdc = ToQdc(peakQdc);
 
-        LOG(error) << "qdc Cal " << qdc << " and tdc " << peakTime << std::endl;
+        LOG(debug) << "qdc Cal " << qdc << " and tdc " << peakTime << std::endl;
 
         auto signal = CalSignal{};
         signal.tot = CalculateTOT(qdc);

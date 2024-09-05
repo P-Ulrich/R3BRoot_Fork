@@ -98,10 +98,11 @@ void R3BNeulandDigitizerCalTask::Exec(Option_t* /*option*/)
     fHits.Reset();
     const auto GeVToMeVFac = 1000.;
 
-    std::map<UInt_t, Double_t> paddleEnergyDeposit;
     // Look at each Land Point, if it deposited energy in the scintillator, store it with reference to the bar
     for (const auto& point : fPoints.Retrieve())
     {
+
+    LOG(debug) << " input: eloss  " << point->GetEnergyLoss()<< std::endl;
         if (point->GetEnergyLoss() > 0.)
         {
             const Int_t paddleID = point->GetPaddle();
@@ -118,16 +119,8 @@ void R3BNeulandDigitizerCalTask::Exec(Option_t* /*option*/)
             // X-Coordinate
             const Double_t dist = converted_position.X();
             fDigitizingEngine->DepositLight(paddleID, point->GetTime(), point->GetLightYield() * GeVToMeVFac, dist);
-            paddleEnergyDeposit[paddleID] += point->GetEnergyLoss() * GeVToMeVFac;
-            // LOG(error) << "Points: Id " << paddleID << " time " << point->GetTime() << " light "
-            //            << point->GetLightYield() * GeVToMeVFac << std::endl;
         } // eloss
-
     } // points
-        for (auto [paddleID, eDepo] : paddleEnergyDeposit)
-        {
-            LOG(error) << "Points: Id " << paddleID << " energydepo " << eDepo << std::endl;
-        }
     const auto paddles = fDigitizingEngine->ExtractPaddles();
 
     // Create CalHits
@@ -144,6 +137,7 @@ void R3BNeulandDigitizerCalTask::Exec(Option_t* /*option*/)
         auto left_channel_signals = left_channel.GetCalSignals();
         auto right_channel_signals = right_channel.GetCalSignals();
 
+       // LOG(error)<< " Sum pmt_peak_: "<< std::accumulate(right_channel.pmt_peaks_.begin(),right_channel.pmt_peaks_.end(),0)<<std::endl;
         for (const auto& [left, right] : ranges::zip_view(left_channel_signals, right_channel_signals))
         {
 
@@ -152,7 +146,7 @@ void R3BNeulandDigitizerCalTask::Exec(Option_t* /*option*/)
             if (fHitFilters.IsValid(cal_data))
             {
                 fHits.Insert(std::move(cal_data));
-                LOG(error) << "Adding cal with id = " << paddleID << " left tot " << left.tot << " right tot "
+                LOG(debug) << "Adding cal with id = " << paddleID << " left tot " << left.tot << " right tot "
                            << right.tot << std::endl;
             }
         } // loop over all hits for each paddle

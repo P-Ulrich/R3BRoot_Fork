@@ -99,6 +99,7 @@ void R3BNeulandDigitizer::Exec(Option_t* /*option*/)
     // Look at each Land Point, if it deposited energy in the scintillator, store it with reference to the bar
     for (const auto& point : fPoints.Retrieve())
     {
+    LOG(debug) << " input: eloss  " << point->GetEnergyLoss()<< std::endl;
         if (point->GetEnergyLoss() > 0.)
         {
             const Int_t paddleID = point->GetPaddle();
@@ -162,6 +163,8 @@ void R3BNeulandDigitizer::Exec(Option_t* /*option*/)
                 fHits.Insert(std::move(hit));
                 LOG(debug) << "Adding neuland hit with id = " << paddleID << ", time = " << signal.time
                            << ", energy = " << signal.energy;
+                LOG(debug) << "Adding neuland hit with id = " << paddleID << ", tot_l = " << signal.leftChannel.qdcUnSat * 15 + 14
+                           << ", tot_r = " << signal.rightChannel.qdcUnSat* 15 + 14;
             }
         } // loop over all hits for each paddle
     }     // loop over paddles
