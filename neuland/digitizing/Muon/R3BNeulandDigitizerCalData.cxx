@@ -23,7 +23,6 @@
 #include "TH2F.h"
 #include "TMath.h"
 #include "TString.h"
-#include <R3BCalData.h>
 #include <R3BShared.h>
 #include <TFile.h>
 #include <iostream>
@@ -141,7 +140,7 @@ void R3BNeulandDigitizerCalTask::Exec(Option_t* /*option*/)
         for (const auto& [left, right] : ranges::zip_view(left_channel_signals, right_channel_signals))
         {
 
-            auto cal_data = R3B::Neuland::CalData{ paddleID, left.tot, right.tot, left.tle, right.tle };
+            auto cal_data = R3B::Neuland::SimCalData{ paddleID, left.tot, right.tot, left.tle, right.tle };
 
             if (fHitFilters.IsValid(cal_data))
             {

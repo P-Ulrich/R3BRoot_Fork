@@ -36,15 +36,15 @@ class TH2F;
 namespace R3B::Neuland
 {
 
-    struct CalData : public TObject
+    struct SimCalData : public TObject
     {
         int bar_module{};                // ns
         double let_l{};         // ns
         double let_r{};        // ns
         double tot_l{};  // ns
         double tot_r{}; // ns
-        CalData() = default;
-        CalData(Int_t paddleid, double totL, double totR, double tleL, double tleR):
+        SimCalData() = default;
+        SimCalData(Int_t paddleid, double totL, double totR, double tleL, double tleR):
        
             bar_module{paddleid},
             tot_l{totL},
@@ -52,7 +52,7 @@ namespace R3B::Neuland
             let_l{tleL},
             let_r{tleR}
             {}
-        ClassDefNV(CalData, 1);
+        ClassDefNV(SimCalData, 1);
     };
 } // namespace R3B::Neuland
 
@@ -80,15 +80,15 @@ class R3BNeulandDigitizerCalTask : public FairTask
                                         TString output = "NeulandSimCal");
 
     void SetEngine(std::unique_ptr<Digitizing::DigitizingEngineInterface> engine);
-    void AddFilter(const Filterable<R3B::Neuland::CalData&>::Filter& filter) { fHitFilters.Add(filter); }
+    void AddFilter(const Filterable<R3B::Neuland::SimCalData&>::Filter& filter) { fHitFilters.Add(filter); }
 
   private:
     TCAInputConnector<R3BNeulandPoint> fPoints;
-    TCAOutputConnector<R3B::Neuland::CalData> fHits;
+    TCAOutputConnector<R3B::Neuland::SimCalData> fHits;
 
     std::unique_ptr<Digitizing::DigitizingEngineInterface> fDigitizingEngine; // owning
 
-    Filterable<R3B::Neuland::CalData&> fHitFilters;
+    Filterable<R3B::Neuland::SimCalData&> fHitFilters;
 
     R3BNeulandGeoPar* fNeulandGeoPar = nullptr; // non-owning
                                                 //

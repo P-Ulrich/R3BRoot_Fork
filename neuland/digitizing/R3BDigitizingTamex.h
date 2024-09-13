@@ -171,7 +171,7 @@ namespace R3B::Digitizing::Neuland::Tamex
         std::vector<PMTPeak> pmt_peaks_;
         std::vector<FQTPeak> fqt_peaks_;
         static R3BNeulandHitPar* neuland_hit_par_; // NOLINT
-        R3BNeulandHitModulePar* neuland_hit_module_par_ = nullptr;
+        R3BNeulandHitModulePar* neuland_hit_module_par_ = nullptr; //old version
         Tamex::Params par_;
 
         R3B::Neuland::HitModulePar hit_module_par_; // Added for qdc in time
