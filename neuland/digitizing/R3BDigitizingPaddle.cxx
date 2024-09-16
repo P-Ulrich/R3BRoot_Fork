@@ -66,7 +66,7 @@ namespace R3B::Digitizing
     auto Paddle::ConstructPaddelSignals(const Channel::Signals& firstSignals,
                                         const Channel::Signals& secondSignals) const -> Signals
     {
-        auto channelSignalPairs = fSignalCouplingStrategy(firstSignals, secondSignals);
+        auto channelSignalPairs = fSignalCouplingStrategy(*this,firstSignals, secondSignals);
 
         auto paddleSignals = std::vector<Signal>();
         paddleSignals.reserve(channelSignalPairs.size());
@@ -113,7 +113,7 @@ namespace R3B::Digitizing
         return fSignals.getRef();
     }
 
-    auto Paddle::SignalCouplingByTime(const Channel::Signals& firstSignals, const Channel::Signals& secondSignals)
+    auto Paddle::SignalCouplingByTime(Paddle&  /*self*/,const Channel::Signals& firstSignals, const Channel::Signals& secondSignals)
         -> std::vector<ChannelSignalPair>
     {
         auto firstSignalRefs =

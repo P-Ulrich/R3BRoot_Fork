@@ -66,10 +66,17 @@ void R3BNeulandDigitizerCalTask::SetParContainers()
         LOG(fatal) << "R3BNeulandDigitizerCalData::SetParContainers: No runtime database";
     }
 
+    //Paula: When is that being used?! i checked via LOG and it is getting called but i dont find it via refrence check
     fNeulandGeoPar = dynamic_cast<R3BNeulandGeoPar*>(rtdb->getContainer("R3BNeulandGeoPar"));
     if (fNeulandGeoPar == nullptr)
     {
         LOG(fatal) << "R3BNeulandDigitizerCalData::SetParContainers: No R3BNeulandGeoPar";
+    }
+
+    fNeulandCal2HitPar = dynamic_cast<R3B::Neuland::Cal2HitPar*>(rtdb->getContainer("NeulandCal2HitPar"));
+    if (fNeulandGeoPar == nullptr)
+    {
+        LOG(fatal) << "R3BNeulandDigitizerCalData::SetParContainers: No NeulandCal2HitPar";
     }
 
     fDigitizingEngine->Init();

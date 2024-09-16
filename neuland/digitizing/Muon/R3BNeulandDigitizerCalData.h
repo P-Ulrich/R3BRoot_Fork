@@ -16,7 +16,7 @@
 
 #include "FairTask.h"
 #include "Filterable.h"
-#include "R3BCalData.h"
+#include "R3BNeulandCalToHitPar.h"
 #include "R3BDigitizingEngine.h"
 #include "R3BDigitizingPaddleNeuland.h"
 #include "R3BDigitizingTacQuila.h"
@@ -89,6 +89,8 @@ class R3BNeulandDigitizerCalTask : public FairTask
     std::unique_ptr<Digitizing::DigitizingEngineInterface> fDigitizingEngine; // owning
 
     Filterable<R3B::Neuland::SimCalData&> fHitFilters;
+
+    R3B::Neuland::Cal2HitPar* fNeulandCal2HitPar = nullptr; // non-owning add by Paula
 
     R3BNeulandGeoPar* fNeulandGeoPar = nullptr; // non-owning
                                                 //

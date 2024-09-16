@@ -23,11 +23,11 @@
 #include "R3BDigitizingTacQuila.h"
 #include "R3BDigitizingTamex.h"
 #include "R3BFileSource2.h"
-#include <R3BNeulandDigitizerCalData.h>
 #include "R3BNeulandHitMon.h"
 #include "R3BProgramOptions.h"
 #include "TRandom3.h"
 #include "TStopwatch.h"
+#include <R3BNeulandDigitizerCalData.h>
 #include <TObjString.h>
 #include <boost/program_options.hpp>
 
@@ -69,7 +69,7 @@ auto main(int argc, const char** argv) -> int
     auto hitLevelPar =
         programOptions.create_option<std::string>("hitLevelPar", "set the name of hit level parameter if needed.", "");
 
-//Paula: Error not yet used in the code 
+    // Paula: Error not yet used in the code
     auto errorcal = programOptions.create_option<bool>("errorCal", "usage of errors in calculations", false);
 
     if (!programOptions.verify(argc, argv))
@@ -99,7 +99,7 @@ auto main(int argc, const char** argv) -> int
     tamexParameter.fPMTThresh = 1.;
     tamexParameter.fTimeMin = 1.;
 
-    //Paula: CalData is only implimented in Tamex for now
+    // Paula: CalData is only implimented in Tamex for now
     const auto neulandEngines = std::map<std::pair<const std::string, const std::string>,
                                          std::function<std::unique_ptr<Digitizing::DigitizingEngineInterface>()>>{
         { { "neuland", "tamex" },
@@ -141,6 +141,18 @@ auto main(int argc, const char** argv) -> int
         fileio2->open(paraFileName2().c_str());
         run->GetRuntimeDb()->setSecondInput(fileio2.release());
     }
+
+        // // Paula: par_name hardcoded will change to flag later
+        // auto par_name = std::string_view{ "NeulandCal2HitPar" };
+        // auto* par = dynamic_cast<R3B::Neuland::Cal2HitPar*>(run->GetRuntimeDb()->findContainer(par_name.data()));
+        // if (par == nullptr)
+        // {
+        //     par = std::make_unique<R3B::Neuland::Cal2HitPar>(par_name.data()).release();
+        //     if (run->GetRuntimeDb()->addContainer(par); par == nullptr)
+        //     {
+        //         throw R3B::runtime_error("Calibration parameter becomes nullptr!");
+        //     }
+        // }
 
     auto digiNeuland = std::make_unique<R3BNeulandDigitizerCalTask>();
     digiNeuland->SetEngine((neulandEngines.at({ paddleName(), channelName() }))());
