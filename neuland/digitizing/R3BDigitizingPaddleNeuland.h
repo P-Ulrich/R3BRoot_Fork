@@ -39,13 +39,14 @@ namespace R3B::Digitizing::Neuland
         auto ComputeChannelHits(const Hit& hit) const -> Pair<Channel::Hit> override;
 
       public:
-        double gHalfLength = 135.;   // [cm]
-        double gAttenuation = 0.008; // light attenuation of plastic scintillator [1/cm]
-        double gLambda = 1. / 2.1;
-        double ReverseAttenFac =std::exp(gHalfLength * gAttenuation) ;
+        static constexpr double gHalfLength = 135.;   // [cm]
+        static constexpr double gCMedium = 14.;       // speed of light in material in [cm/ns]
+        static constexpr double gAttenuation = 0.008; // light attenuation of plastic scintillator [1/cm]
+        static constexpr double gLambda = 1. / 2.1;
+        static const double ReverseAttenFac;
 
-        auto MatchSignals(const Channel::Signal& firstSignal, const Channel::Signal& secondSignal) -> float;
-        [[nodiscard]] static auto SignalCouplingNeuland(NeulandPaddle& self,const Channel::Signals& firstSignals,
+        auto MatchSignals(const Channel::Signal& firstSignal, const Channel::Signal& secondSignal) const-> float override;
+        [[nodiscard]] static auto SignalCouplingNeuland(const Paddle& self,const Channel::Signals& firstSignals,
                                                         const Channel::Signals& secondSignals)
             -> std::vector<ChannelSignalPair>;
         auto GenerateChannelHit(Double_t mcTime, Double_t mcLight, Double_t dist) const -> const Channel::Hit;

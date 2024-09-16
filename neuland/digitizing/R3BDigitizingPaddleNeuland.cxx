@@ -10,6 +10,7 @@ namespace R3B::Digitizing::Neuland
     static auto CheckMatchValidity(const std::vector<Paddle::ChannelSignalPair>& matchedPairs,
                                    const Channel::Signal& signal) -> bool;
 
+const double NeulandPaddle::ReverseAttenFac = std::exp(NeulandPaddle::gHalfLength * NeulandPaddle::gAttenuation);
 
     template <uint8_t iterations = DEFAULT_ITERATION>
     auto FastExp(const Float_t val) -> Float_t
@@ -34,7 +35,7 @@ namespace R3B::Digitizing::Neuland
         effective_speed_ = cal_to_hit_par->GetModulePars().at(paddleID).effectiveSpeed.value;
     }
 
-    auto NeulandPaddle::MatchSignals(const Channel::Signal& firstSignal, const Channel::Signal& secondSignal) -> float
+    auto NeulandPaddle::MatchSignals(const Channel::Signal& firstSignal, const Channel::Signal& secondSignal) const-> float
     {
         auto firstE = static_cast<Float_t>(firstSignal.qdcUnSat);
         auto secondE = static_cast<Float_t>(secondSignal.qdcUnSat);
@@ -100,7 +101,7 @@ namespace R3B::Digitizing::Neuland
         return { time, light };
     }
 
-    auto NeulandPaddle::SignalCouplingNeuland(NeulandPaddle& self,const Channel::Signals& firstSignals,
+    auto NeulandPaddle::SignalCouplingNeuland(const Paddle& self,const Channel::Signals& firstSignals,
                                               const Channel::Signals& secondSignals) -> std::vector<ChannelSignalPair>
     {
         // step1: determine the signals with smaller size:

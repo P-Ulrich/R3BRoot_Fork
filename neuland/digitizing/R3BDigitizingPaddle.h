@@ -75,7 +75,7 @@ namespace R3B::Digitizing
         using Signals = std::vector<Signal>;
         using ChannelSignalPair = Pair<std::reference_wrapper<const Channel::Signal>>;
         using SignalCouplingStrategy =
-            std::function<std::vector<ChannelSignalPair>(Paddle&,const Channel::Signals&, const Channel::Signals&)>;
+            std::function<std::vector<ChannelSignalPair>(const Paddle&,const Channel::Signals&, const Channel::Signals&)>;
 
         explicit Paddle(int paddleID, SignalCouplingStrategy strategy = SignalCouplingByTime);
         auto HasFired() const -> bool;
@@ -111,6 +111,7 @@ namespace R3B::Digitizing
         SignalCouplingStrategy fSignalCouplingStrategy;
 
         // virtual std::function<indexMapFunc> IndexMapFunc() const { return ConstructIndexMapByTime; }
+        
         virtual auto ConstructPaddelSignals(const Channel::Signals& firstSignals,
                                             const Channel::Signals& secondSignals) const -> Signals;
         virtual auto ComputeTime(const Channel::Signal& firstSignal, const Channel::Signal& secondSignal) const
@@ -122,7 +123,8 @@ namespace R3B::Digitizing
         virtual auto ComputeChannelHits(const Hit& hit) const -> Pair<Channel::Hit> = 0;
 
       public:
-        static auto SignalCouplingByTime(Paddle& self,const Channel::Signals& firstSignals, const Channel::Signals& secondSignals)
+virtual auto MatchSignals(const Channel::Signal& firstSignal, const Channel::Signal& secondSignal) const-> float{return 0.;}
+        static auto SignalCouplingByTime(const Paddle& self,const Channel::Signals& firstSignals, const Channel::Signals& secondSignals)
             -> std::vector<ChannelSignalPair>;
     };
 } // namespace R3B::Digitizing

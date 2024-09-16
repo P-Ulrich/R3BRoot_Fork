@@ -113,7 +113,7 @@ namespace R3B::Digitizing
         return fSignals.getRef();
     }
 
-    auto Paddle::SignalCouplingByTime(Paddle&  /*self*/,const Channel::Signals& firstSignals, const Channel::Signals& secondSignals)
+    auto Paddle::SignalCouplingByTime(const Paddle&  /*self*/,const Channel::Signals& firstSignals, const Channel::Signals& secondSignals)
         -> std::vector<ChannelSignalPair>
     {
         auto firstSignalRefs =
