@@ -10,7 +10,7 @@ namespace R3B::Digitizing::Neuland
     static auto CheckMatchValidity(const std::vector<Paddle::ChannelSignalPair>& matchedPairs,
                                    const Channel::Signal& signal) -> bool;
 
-const double NeulandPaddle::ReverseAttenFac = std::exp(NeulandPaddle::gHalfLength * NeulandPaddle::gAttenuation);
+const double NeulandPaddle::ReverseAttenFac = std::exp(NeulandPaddle::gHalfLength * NeulandPaddle::gAttenuation);  
 
     template <uint8_t iterations = DEFAULT_ITERATION>
     auto FastExp(const Float_t val) -> Float_t
@@ -48,13 +48,13 @@ const double NeulandPaddle::ReverseAttenFac = std::exp(NeulandPaddle::gHalfLengt
         {
             res =
                 std::abs((firstE / secondE) *
-                             FastExp<4>(static_cast<Float_t>(gAttenuation * effective_speed_ * (firstT - secondT))) -
+                             FastExp<4>(static_cast<Float_t>(gAttenuation_ * effective_speed_ * (firstT - secondT))) -
                          1);
         }
         else
         {
             res =
-                std::abs((secondE / firstE) * FastExp<4>(static_cast<Float_t>(gAttenuation * effective_speed_ *
+                std::abs((secondE / firstE) * FastExp<4>(static_cast<Float_t>(gAttenuation_ * effective_speed_ *
                                                                               static_cast<Float_t>(secondT - firstT))) -
                          1);
         }
@@ -64,13 +64,13 @@ const double NeulandPaddle::ReverseAttenFac = std::exp(NeulandPaddle::gHalfLengt
     inline auto NeulandPaddle::ComputeEnergy(const Channel::Signal& firstSignal,
                                              const Channel::Signal& secondSignal) const -> double
     {
-        return std::sqrt(firstSignal.qdcUnSat * secondSignal.qdcUnSat) * ReverseAttenFac;
+        return std::sqrt(firstSignal.qdcUnSat * secondSignal.qdcUnSat) * ReverseAttenFac_;
     }
 
     inline auto NeulandPaddle::ComputeTime(const Channel::Signal& firstSignal,
                                            const Channel::Signal& secondSignal) const -> double
     {
-        return (firstSignal.tdc + secondSignal.tdc) / 2 - gHalfLength / effective_speed_;
+        return (firstSignal.tdc + secondSignal.tdc) / 2 - gHalfLength_ / effective_speed_;
     }
 
     inline auto NeulandPaddle::ComputePosition(const Channel::Signal& leftSignal,
@@ -96,8 +96,8 @@ const double NeulandPaddle::ReverseAttenFac = std::exp(NeulandPaddle::gHalfLengt
                                            const Double_t mcLight,
                                            const Double_t dist) const -> const Channel::Hit
     {
-        auto time = mcTime + (NeulandPaddle::gHalfLength - dist) / effective_speed_;
-        auto light = mcLight * std::exp(-NeulandPaddle::gAttenuation * (NeulandPaddle::gHalfLength - dist));
+        auto time = mcTime + (NeulandPaddle::gHalfLength_ - dist) / effective_speed_;
+        auto light = mcLight * std::exp(-NeulandPaddle::gAttenuation_ * (NeulandPaddle::gHalfLength_ - dist));
         return { time, light };
     }
 
