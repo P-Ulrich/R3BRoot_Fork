@@ -92,6 +92,9 @@ namespace R3B::Digitizing
             return virtual_sig;
         }
 
+        //Paula: Testin ParStuff
+        virtual void SetPar(int Module_ID){}
+
         void SetPaddle(Paddle* v_paddle) { fPaddle = v_paddle; }
         auto Is_ValidSignals() -> bool { return fSignals.valid(); }
         auto Is_ValidCalSignals() -> bool { return fCalSignals.valid(); }

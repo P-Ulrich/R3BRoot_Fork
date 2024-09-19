@@ -121,6 +121,18 @@ namespace R3B::Digitizing::Neuland::Tamex
         pmt_peaks_.reserve(TmxPeaksInitialCapacity);
     }
 
+    Channel::Channel(ChannelSide side,
+                     PeakPileUpStrategy strategy,
+                     const Params& par,
+                     R3B::Neuland::Cal2HitPar* cal_to_hit_par)
+        : Digitizing::Channel{ side }
+        , pileup_strategy_{ strategy }
+        , hit_par_{ cal_to_hit_par }
+        , par_{ par }
+    {
+        pmt_peaks_.reserve(TmxPeaksInitialCapacity);
+    }
+
     Channel::Channel(ChannelSide side, PeakPileUpStrategy strategy, TRandom3& rnd)
         : Channel{ side, strategy, Params{ rnd } }
     {

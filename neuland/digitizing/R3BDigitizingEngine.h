@@ -77,8 +77,11 @@ namespace R3B::Digitizing
         UseChannel<ChannelClass> channelClass_;
         std::map<int, std::unique_ptr<Paddle>> paddles;
         InitFunc initFunc_;
+        bool custom_par_{ false };
 
       public:
+        void SetCustomPar(bool custom_par) { custom_par_ = custom_par; }
+
         DigitizingEngine(
             const UsePaddle<PaddleClass>& p_paddleClass,
             const UseChannel<ChannelClass>& p_channelClass,
@@ -95,8 +98,16 @@ namespace R3B::Digitizing
             if (paddles.find(paddle_id) == paddles.end())
             {
                 auto newPaddle = paddleClass_.BuildPaddle(paddle_id);
-                newPaddle->SetChannel(channelClass_.BuildChannel(Digitizing::ChannelSide::left));
-                newPaddle->SetChannel(channelClass_.BuildChannel(Digitizing::ChannelSide::right));
+                if (custom_par_ == false)
+                {
+                    newPaddle->SetChannel(channelClass_.BuildChannel(Digitizing::ChannelSide::left));
+                    newPaddle->SetChannel(channelClass_.BuildChannel(Digitizing::ChannelSide::right));
+                }
+                else
+                {
+                    newPaddle->SetChannel(channelClass_.BuildChannel(Digitizing::ChannelSide::left), paddle_id);
+                    newPaddle->SetChannel(channelClass_.BuildChannel(Digitizing::ChannelSide::right), paddle_id);
+                }
                 paddles[paddle_id] = std::move(newPaddle);
             }
             paddles.at(paddle_id)->DepositLight({ time, light, dist });

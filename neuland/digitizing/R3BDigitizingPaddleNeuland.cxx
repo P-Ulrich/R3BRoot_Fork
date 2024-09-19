@@ -3,14 +3,13 @@
 #include <cmath>
 #include <memory>
 
-
 namespace R3B::Digitizing::Neuland
 {
     static const uint8_t DEFAULT_ITERATION = 8U;
     static auto CheckMatchValidity(const std::vector<Paddle::ChannelSignalPair>& matchedPairs,
                                    const Channel::Signal& signal) -> bool;
 
-const double NeulandPaddle::ReverseAttenFac = std::exp(NeulandPaddle::gHalfLength * NeulandPaddle::gAttenuation);  
+    const double NeulandPaddle::ReverseAttenFac = std::exp(NeulandPaddle::gHalfLength * NeulandPaddle::gAttenuation);
 
     template <uint8_t iterations = DEFAULT_ITERATION>
     auto FastExp(const Float_t val) -> Float_t
@@ -26,16 +25,17 @@ const double NeulandPaddle::ReverseAttenFac = std::exp(NeulandPaddle::gHalfLengt
     NeulandPaddle::NeulandPaddle(uint16_t paddleID)
         : Digitizing::Paddle(paddleID, SignalCouplingNeuland)
     {
-
     }
 
     NeulandPaddle::NeulandPaddle(uint16_t paddleID, R3B::Neuland::Cal2HitPar* cal_to_hit_par)
         : Digitizing::Paddle(paddleID, SignalCouplingNeuland)
     {
         effective_speed_ = cal_to_hit_par->GetModulePars().at(paddleID).effectiveSpeed.value;
+        gAttenuation_ = cal_to_hit_par->GetModulePars().at(paddleID).lightAttenuationFactor.value;
     }
 
-    auto NeulandPaddle::MatchSignals(const Channel::Signal& firstSignal, const Channel::Signal& secondSignal) const-> float
+    auto NeulandPaddle::MatchSignals(const Channel::Signal& firstSignal,
+                                     const Channel::Signal& secondSignal) const -> float
     {
         auto firstE = static_cast<Float_t>(firstSignal.qdcUnSat);
         auto secondE = static_cast<Float_t>(secondSignal.qdcUnSat);
@@ -46,10 +46,9 @@ const double NeulandPaddle::ReverseAttenFac = std::exp(NeulandPaddle::gHalfLengt
         auto res = 0.F;
         if (firstT > secondT)
         {
-            res =
-                std::abs((firstE / secondE) *
-                             FastExp<4>(static_cast<Float_t>(gAttenuation_ * effective_speed_ * (firstT - secondT))) -
-                         1);
+            res = std::abs((firstE / secondE) *
+                               FastExp<4>(static_cast<Float_t>(gAttenuation_ * effective_speed_ * (firstT - secondT))) -
+                           1);
         }
         else
         {
@@ -101,7 +100,8 @@ const double NeulandPaddle::ReverseAttenFac = std::exp(NeulandPaddle::gHalfLengt
         return { time, light };
     }
 
-    auto NeulandPaddle::SignalCouplingNeuland(const Paddle& self,const Channel::Signals& firstSignals,
+    auto NeulandPaddle::SignalCouplingNeuland(const Paddle& self,
+                                              const Channel::Signals& firstSignals,
                                               const Channel::Signals& secondSignals) -> std::vector<ChannelSignalPair>
     {
         // step1: determine the signals with smaller size:

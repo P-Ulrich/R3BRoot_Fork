@@ -100,6 +100,29 @@ auto main(int argc, const char** argv) -> int
     tamexParameter.fTimeMin = 1.;
 
     // Paula: CalData is only implimented in Tamex for now
+    // const auto neulandEngines = std::map<std::pair<const std::string, const std::string>,
+    //                                      std::function<std::unique_ptr<Digitizing::DigitizingEngineInterface>()>>{
+    //     { { "neuland", "tamex" },
+    //       [&]()
+    //       {
+    //           return Digitizing::CreateEngine(
+    //               UsePaddle<NeulandPaddle>(), UseChannel<TamexChannel>(pileup_strategy, tamexParameter), channelInit);
+    //       } },
+    //     { { "neuland", "tacquila" },
+    //       []() { return Digitizing::CreateEngine(UsePaddle<NeulandPaddle>(), UseChannel<TacquilaChannel>()); } },
+    //     { { "mock", "tamex" },
+    //       [&]()
+    //       {
+    //           return Digitizing::CreateEngine(
+    //               UsePaddle<MockPaddle>(), UseChannel<TamexChannel>(pileup_strategy, tamexParameter), channelInit);
+    //       } },
+    //     { { "neuland", "mock" },
+    //       []() { return Digitizing::CreateEngine(UsePaddle<NeulandPaddle>(), UseChannel<MockChannel>()); } },
+    //     { { "mock", "mock" },
+    //       []() { return Digitizing::CreateEngine(UsePaddle<MockPaddle>(), UseChannel<MockChannel>()); } }
+    // };
+    //Paula:test
+
     const auto neulandEngines = std::map<std::pair<const std::string, const std::string>,
                                          std::function<std::unique_ptr<Digitizing::DigitizingEngineInterface>()>>{
         { { "neuland", "tamex" },
@@ -121,6 +144,8 @@ auto main(int argc, const char** argv) -> int
         { { "mock", "mock" },
           []() { return Digitizing::CreateEngine(UsePaddle<MockPaddle>(), UseChannel<MockChannel>()); } }
     };
+
+
     //=============================================================================
 
     FairLogger::GetLogger()->SetLogScreenLevel(logLevel().c_str());

@@ -51,6 +51,7 @@ namespace R3B::Digitizing::Neuland
             -> std::vector<ChannelSignalPair>;
         auto GenerateChannelHit(Double_t mcTime, Double_t mcLight, Double_t dist) const -> const Channel::Hit;
       private:
+        //Paula: non static member variables, are not used in TacQuila
         double gHalfLength_ = 135.;   // [cm]
         double gCMedium_ = 14.;       // speed of light in material in [cm/ns]
         double gAttenuation_ = 0.008; // light attenuation of plastic scintillator [1/cm]
