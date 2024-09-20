@@ -52,6 +52,13 @@ void R3BNeulandDigitizerCalTask::SetEngine(std::unique_ptr<Digitizing::Digitizin
     fDigitizingEngine = std::move(engine);
 }
 
+void R3BNeulandDigitizerCalTask::SetEngine(std::unique_ptr<Digitizing::DigitizingEngineInterface> engine,
+                                           bool custom_par)
+{
+    fDigitizingEngine = std::move(engine);
+    fDigitizingEngine->SetCustomPar(custom_par);
+}
+
 void R3BNeulandDigitizerCalTask::SetParContainers()
 {
     FairRunAna* run = FairRunAna::Instance();
@@ -66,18 +73,18 @@ void R3BNeulandDigitizerCalTask::SetParContainers()
         LOG(fatal) << "R3BNeulandDigitizerCalData::SetParContainers: No runtime database";
     }
 
-    //Paula: When is that being used?! i checked via LOG and it is getting called but i dont find it via refrence check
+    // Paula: When is that being used?! i checked via LOG and it is getting called but i dont find it via refrence check
     fNeulandGeoPar = dynamic_cast<R3BNeulandGeoPar*>(rtdb->getContainer("R3BNeulandGeoPar"));
     if (fNeulandGeoPar == nullptr)
     {
         LOG(fatal) << "R3BNeulandDigitizerCalData::SetParContainers: No R3BNeulandGeoPar";
     }
-
-    fNeulandCal2HitPar = dynamic_cast<R3B::Neuland::Cal2HitPar*>(rtdb->getContainer("NeulandCal2HitPar"));
-    if (fNeulandGeoPar == nullptr)
-    {
-        LOG(fatal) << "R3BNeulandDigitizerCalData::SetParContainers: No NeulandCal2HitPar";
-    }
+    // Paula: I think this is useless, not sure
+    // fNeulandCal2HitPar = dynamic_cast<R3B::Neuland::Cal2HitPar*>(rtdb->getContainer("NeulandCal2HitPar"));
+    // if (fNeulandGeoPar == nullptr)
+    // {
+    //     LOG(fatal) << "R3BNeulandDigitizerCalData::SetParContainers: No NeulandCal2HitPar";
+    // }
 
     fDigitizingEngine->Init();
 }
@@ -108,7 +115,7 @@ void R3BNeulandDigitizerCalTask::Exec(Option_t* /*option*/)
     for (const auto& point : fPoints.Retrieve())
     {
 
-    LOG(debug) << " input: eloss  " << point->GetEnergyLoss()<< std::endl;
+        LOG(debug) << " input: eloss  " << point->GetEnergyLoss() << std::endl;
         if (point->GetEnergyLoss() > 0.)
         {
             const Int_t paddleID = point->GetPaddle();
@@ -143,7 +150,8 @@ void R3BNeulandDigitizerCalTask::Exec(Option_t* /*option*/)
         auto left_channel_signals = left_channel.GetCalSignals();
         auto right_channel_signals = right_channel.GetCalSignals();
 
-       // LOG(error)<< " Sum pmt_peak_: "<< std::accumulate(right_channel.pmt_peaks_.begin(),right_channel.pmt_peaks_.end(),0)<<std::endl;
+        // LOG(error)<< " Sum pmt_peak_: "<<
+        // std::accumulate(right_channel.pmt_peaks_.begin(),right_channel.pmt_peaks_.end(),0)<<std::endl;
         for (const auto& [left, right] : ranges::zip_view(left_channel_signals, right_channel_signals))
         {
 

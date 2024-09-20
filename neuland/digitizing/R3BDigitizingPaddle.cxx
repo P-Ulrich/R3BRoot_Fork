@@ -44,8 +44,8 @@ namespace R3B::Digitizing
     void Paddle::SetChannel(std::unique_ptr<Channel> channel, int Module_ID)
     {
         channel->SetPaddle(this);
-        channel->AttachToPaddle(this);
         channel->SetPar(Module_ID);
+        channel->AttachToPaddle(this);
         if (channel->GetSide() == ChannelSide::left)
         {
             fLeftChannel = std::move(channel);

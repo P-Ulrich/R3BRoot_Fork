@@ -30,6 +30,7 @@
 #include <R3BNeulandDigitizerCalData.h>
 #include <TObjString.h>
 #include <boost/program_options.hpp>
+#include <memory>
 
 namespace Digitizing = R3B::Digitizing;
 using NeulandPaddle = Digitizing::Neuland::NeulandPaddle;
@@ -106,7 +107,8 @@ auto main(int argc, const char** argv) -> int
     //       [&]()
     //       {
     //           return Digitizing::CreateEngine(
-    //               UsePaddle<NeulandPaddle>(), UseChannel<TamexChannel>(pileup_strategy, tamexParameter), channelInit);
+    //               UsePaddle<NeulandPaddle>(), UseChannel<TamexChannel>(pileup_strategy, tamexParameter),
+    //               channelInit);
     //       } },
     //     { { "neuland", "tacquila" },
     //       []() { return Digitizing::CreateEngine(UsePaddle<NeulandPaddle>(), UseChannel<TacquilaChannel>()); } },
@@ -121,30 +123,7 @@ auto main(int argc, const char** argv) -> int
     //     { { "mock", "mock" },
     //       []() { return Digitizing::CreateEngine(UsePaddle<MockPaddle>(), UseChannel<MockChannel>()); } }
     // };
-    //Paula:test
-
-    const auto neulandEngines = std::map<std::pair<const std::string, const std::string>,
-                                         std::function<std::unique_ptr<Digitizing::DigitizingEngineInterface>()>>{
-        { { "neuland", "tamex" },
-          [&]()
-          {
-              return Digitizing::CreateEngine(
-                  UsePaddle<NeulandPaddle>(), UseChannel<TamexChannel>(pileup_strategy, tamexParameter), channelInit);
-          } },
-        { { "neuland", "tacquila" },
-          []() { return Digitizing::CreateEngine(UsePaddle<NeulandPaddle>(), UseChannel<TacquilaChannel>()); } },
-        { { "mock", "tamex" },
-          [&]()
-          {
-              return Digitizing::CreateEngine(
-                  UsePaddle<MockPaddle>(), UseChannel<TamexChannel>(pileup_strategy, tamexParameter), channelInit);
-          } },
-        { { "neuland", "mock" },
-          []() { return Digitizing::CreateEngine(UsePaddle<NeulandPaddle>(), UseChannel<MockChannel>()); } },
-        { { "mock", "mock" },
-          []() { return Digitizing::CreateEngine(UsePaddle<MockPaddle>(), UseChannel<MockChannel>()); } }
-    };
-
+    // Paula:test
 
     //=============================================================================
 
@@ -167,20 +146,35 @@ auto main(int argc, const char** argv) -> int
         run->GetRuntimeDb()->setSecondInput(fileio2.release());
     }
 
-        // // Paula: par_name hardcoded will change to flag later
-        // auto par_name = std::string_view{ "NeulandCal2HitPar" };
-        // auto* par = dynamic_cast<R3B::Neuland::Cal2HitPar*>(run->GetRuntimeDb()->findContainer(par_name.data()));
-        // if (par == nullptr)
-        // {
-        //     par = std::make_unique<R3B::Neuland::Cal2HitPar>(par_name.data()).release();
-        //     if (run->GetRuntimeDb()->addContainer(par); par == nullptr)
-        //     {
-        //         throw R3B::runtime_error("Calibration parameter becomes nullptr!");
-        //     }
-        // }
+    auto* cal_2_hit_par = dynamic_cast<R3B::Neuland::Cal2HitPar*>(run->GetRuntimeDb()->getContainer("NeulandCal2HitPar"));
+
+    const auto neulandEngines = std::map<std::pair<const std::string, const std::string>,
+                                         std::function<std::unique_ptr<Digitizing::DigitizingEngineInterface>()>>{
+        { { "neuland", "tamex" },
+          [&]()
+          {
+              return Digitizing::CreateEngine(UsePaddle<NeulandPaddle>(cal_2_hit_par),
+                                              UseChannel<TamexChannel>(pileup_strategy, tamexParameter, cal_2_hit_par),
+                                              channelInit);
+          } }
+    };
+
+    // // Paula: par_name hardcoded will change to flag later
+    // auto par_name = std::string_view{ "NeulandCal2HitPar" };
+    // auto* par = dynamic_cast<R3B::Neuland::Cal2HitPar*>(run->GetRuntimeDb()->findContainer(par_name.data()));
+    // if (par == nullptr)
+    // {
+    //     par = std::make_unique<R3B::Neuland::Cal2HitPar>(par_name.data()).release();
+    //     if (run->GetRuntimeDb()->addContainer(par); par == nullptr)
+    //     {
+    //         throw R3B::runtime_error("Calibration parameter becomes nullptr!");
+    //     }
+    // }
 
     auto digiNeuland = std::make_unique<R3BNeulandDigitizerCalTask>();
-    digiNeuland->SetEngine((neulandEngines.at({ paddleName(), channelName() }))());
+    auto neulandEngine = neulandEngines.at({ paddleName(), channelName() });
+    //Paula: If stuff needs to be added here
+    digiNeuland->SetEngine((neulandEngine)(), true);
     run->AddTask(digiNeuland.release());
 
     run->Init();

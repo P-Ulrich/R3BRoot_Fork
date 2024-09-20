@@ -155,7 +155,7 @@ namespace R3B::Digitizing::Neuland::Tamex
 
         // Paula:Testing ParStuff
 
-        void SetPar(int Module_ID) override { hit_module_par_ = hit_par_->GetModuleParAt(Module_ID);};
+        void SetPar(int Module_ID) override { hit_module_par_ = hit_par_->GetModuleParAt(Module_ID); };
 
         // Getters:
         auto GetPar() -> Tamex::Params& { return par_; }
@@ -170,6 +170,7 @@ namespace R3B::Digitizing::Neuland::Tamex
         static void GetHitPar(const std::string& hitParName);
 
         auto GetHitModulePar() const -> R3B::Neuland::HitModulePar { return hit_module_par_; } // Added for qdc in time
+        auto GetCal2HitPar() { return hit_par_; }
 
       private:
         PeakPileUpStrategy pileup_strategy_ = PeakPileUpStrategy::width;
@@ -179,7 +180,7 @@ namespace R3B::Digitizing::Neuland::Tamex
         R3BNeulandHitModulePar* neuland_hit_module_par_ = nullptr; // old version
         Tamex::Params par_;
 
-        R3B::Neuland::Cal2HitPar* hit_par_;
+        R3B::Neuland::Cal2HitPar* hit_par_ = nullptr;
         R3B::Neuland::HitModulePar hit_module_par_; // Added for qdc in time
 
         // private virtual functions

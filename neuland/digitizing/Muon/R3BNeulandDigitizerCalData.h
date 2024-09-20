@@ -80,6 +80,7 @@ class R3BNeulandDigitizerCalTask : public FairTask
                                         TString output = "NeulandSimCal");
 
     void SetEngine(std::unique_ptr<Digitizing::DigitizingEngineInterface> engine);
+    void SetEngine(std::unique_ptr<Digitizing::DigitizingEngineInterface> engine, bool custom_par);
     void AddFilter(const Filterable<R3B::Neuland::SimCalData&>::Filter& filter) { fHitFilters.Add(filter); }
 
   private:
@@ -90,7 +91,7 @@ class R3BNeulandDigitizerCalTask : public FairTask
 
     Filterable<R3B::Neuland::SimCalData&> fHitFilters;
 
-    R3B::Neuland::Cal2HitPar* fNeulandCal2HitPar = nullptr; // non-owning add by Paula
+   // R3B::Neuland::Cal2HitPar* fNeulandCal2HitPar = nullptr; // non-owning add by Paula
 
     R3BNeulandGeoPar* fNeulandGeoPar = nullptr; // non-owning
                                                 //

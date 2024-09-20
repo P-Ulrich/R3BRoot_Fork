@@ -178,7 +178,26 @@ namespace R3B::Digitizing::Neuland::Tamex
                 par_.fEnergyGain = neuland_hit_module_par_->GetEnergyGain(static_cast<int>(side));
                 par_.fPedestal = neuland_hit_module_par_->GetPedestal(static_cast<int>(side));
                 par_.fPMTThresh = neuland_hit_module_par_->GetPMTThreshold(static_cast<int>(side));
-                par_.fQdcMin = 1 / par_.fEnergyGain;
+                // Paula: If for paraStuff left/right???!
+                if (GetHitModulePar().energyGain.left().value == 0&& GetHitModulePar().energyGain.right().value)
+                {
+                    par_.fQdcMin = 1 / par_.fEnergyGain;
+                }
+                else
+                {
+                    if (GetSide() == ChannelSide::left)
+                    {
+                        par_.fQdcMin = 1 / GetHitModulePar().energyGain.left().value;
+                    }
+                    else if (GetSide() == ChannelSide::right)
+                    {
+                        par_.fQdcMin = 1 / GetHitModulePar().energyGain.right().value;
+                    }
+                    else
+                    {
+                        LOG(error) << "Channel::AttachToPaddle: Channelside not correct defined";
+                    }
+                }
             }
         }
     }
@@ -488,7 +507,23 @@ namespace R3B::Digitizing::Neuland::Tamex
         // Apply reverse saturation
         if (par_.fExperimentalDataIsCorrectedForSaturation)
         {
-            qdc = qdc / (1 - par_.fSaturationCoefficient * qdc);
+            //Paula: Par if stuff
+            if(GetHitModulePar().PMTSaturation.left().value == 0 && GetHitModulePar().PMTSaturation.right().value){
+            qdc = qdc / (1 - par_.fSaturationCoefficient * qdc);}
+        }
+        else {
+                    if (GetSide() == ChannelSide::left)
+                    {
+                        qdc = qdc / (1 - GetHitModulePar().PMTSaturation.left().value * qdc);
+                    }
+                    else if (GetSide() == ChannelSide::right)
+                    {
+                        qdc = qdc / (1 - GetHitModulePar().PMTSaturation.right().value * qdc);
+                    }
+                    else
+                    {
+                        LOG(error) << "Channel::ToUnSatQdc: Channelside not correct defined";
+                    }
         }
         // Apply reverse attenuation
         return qdc;
