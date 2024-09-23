@@ -146,17 +146,19 @@ auto main(int argc, const char** argv) -> int
         run->GetRuntimeDb()->setSecondInput(fileio2.release());
     }
 
-const Text_t* containerName = "NeulandCal2HitPar";
+    auto hit_par = std::make_unique<R3B::Neuland::Cal2HitPar>();
 
-    auto* cal_2_hit_par = dynamic_cast<R3B::Neuland::Cal2HitPar*>(run->GetRuntimeDb()->getContainer(containerName));
+    auto* hit_par_ptr = hit_par.get();
+
+    run->GetRuntimeDb()->addContainer(hit_par.release());
 
     const auto neulandEngines = std::map<std::pair<const std::string, const std::string>,
                                          std::function<std::unique_ptr<Digitizing::DigitizingEngineInterface>()>>{
         { { "neuland", "tamex" },
-          [&]()
+          [&pileup_strategy, &tamexParameter, hit_par_ptr, channelInit]()
           {
-              return Digitizing::CreateEngine(UsePaddle<NeulandPaddle>(cal_2_hit_par),
-                                              UseChannel<TamexChannel>(pileup_strategy, tamexParameter, cal_2_hit_par),
+              return Digitizing::CreateEngine(UsePaddle<NeulandPaddle>(hit_par_ptr),
+                                              UseChannel<TamexChannel>(pileup_strategy, tamexParameter, hit_par_ptr),
                                               channelInit);
           } }
     };
@@ -175,7 +177,7 @@ const Text_t* containerName = "NeulandCal2HitPar";
 
     auto digiNeuland = std::make_unique<R3BNeulandDigitizerCalTask>();
     auto neulandEngine = neulandEngines.at({ paddleName(), channelName() });
-    //Paula: If stuff needs to be added here
+    // Paula: If stuff needs to be added here
     digiNeuland->SetEngine((neulandEngine)(), true);
     run->AddTask(digiNeuland.release());
 

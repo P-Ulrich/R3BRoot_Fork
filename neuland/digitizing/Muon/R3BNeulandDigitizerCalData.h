@@ -16,11 +16,11 @@
 
 #include "FairTask.h"
 #include "Filterable.h"
-#include "R3BNeulandCalToHitPar.h"
 #include "R3BDigitizingEngine.h"
 #include "R3BDigitizingPaddleNeuland.h"
 #include "R3BDigitizingTacQuila.h"
 #include "R3BDigitizingTamex.h"
+#include "R3BNeulandCalToHitPar.h"
 #include "R3BNeulandGeoPar.h"
 #include "R3BNeulandHitPar.h"
 #include "R3BNeulandPoint.h"
@@ -32,26 +32,27 @@ class TGeoNode;
 class TH1F;
 class TH2F;
 
-
 namespace R3B::Neuland
 {
 
     struct SimCalData : public TObject
     {
-        int bar_module{};                // ns
-        double let_l{};         // ns
-        double let_r{};        // ns
-        double tot_l{};  // ns
-        double tot_r{}; // ns
+        int bar_module{}; // ns
+        double let_l{};   // ns
+        double let_r{};   // ns
+        double tot_l{};   // ns
+        double tot_r{};   // ns
         SimCalData() = default;
-        SimCalData(Int_t paddleid, double totL, double totR, double tleL, double tleR):
-       
-            bar_module{paddleid},
-            tot_l{totL},
-            tot_r{totR},
-            let_l{tleL},
-            let_r{tleR}
-            {}
+        SimCalData(Int_t paddleid, double totL, double totR, double tleL, double tleR)
+            :
+
+            bar_module{ paddleid }
+            , tot_l{ totL }
+            , tot_r{ totR }
+            , let_l{ tleL }
+            , let_r{ tleR }
+        {
+        }
         ClassDefNV(SimCalData, 1);
     };
 } // namespace R3B::Neuland
@@ -90,8 +91,6 @@ class R3BNeulandDigitizerCalTask : public FairTask
     std::unique_ptr<Digitizing::DigitizingEngineInterface> fDigitizingEngine; // owning
 
     Filterable<R3B::Neuland::SimCalData&> fHitFilters;
-
-   // R3B::Neuland::Cal2HitPar* fNeulandCal2HitPar = nullptr; // non-owning add by Paula
 
     R3BNeulandGeoPar* fNeulandGeoPar = nullptr; // non-owning
                                                 //

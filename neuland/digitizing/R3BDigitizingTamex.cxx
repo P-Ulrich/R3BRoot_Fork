@@ -507,23 +507,7 @@ namespace R3B::Digitizing::Neuland::Tamex
         // Apply reverse saturation
         if (par_.fExperimentalDataIsCorrectedForSaturation)
         {
-            //Paula: Par if stuff
-            if(GetHitModulePar().PMTSaturation.left().value == 0 && GetHitModulePar().PMTSaturation.right().value){
-            qdc = qdc / (1 - par_.fSaturationCoefficient * qdc);}
-        }
-        else {
-                    if (GetSide() == ChannelSide::left)
-                    {
-                        qdc = qdc / (1 - GetHitModulePar().PMTSaturation.left().value * qdc);
-                    }
-                    else if (GetSide() == ChannelSide::right)
-                    {
-                        qdc = qdc / (1 - GetHitModulePar().PMTSaturation.right().value * qdc);
-                    }
-                    else
-                    {
-                        LOG(error) << "Channel::ToUnSatQdc: Channelside not correct defined";
-                    }
+            qdc = qdc / (1 - par_.fSaturationCoefficient * qdc);
         }
         // Apply reverse attenuation
         return qdc;
