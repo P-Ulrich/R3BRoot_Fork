@@ -146,7 +146,9 @@ auto main(int argc, const char** argv) -> int
         run->GetRuntimeDb()->setSecondInput(fileio2.release());
     }
 
-    auto* cal_2_hit_par = dynamic_cast<R3B::Neuland::Cal2HitPar*>(run->GetRuntimeDb()->getContainer("NeulandCal2HitPar"));
+const Text_t* containerName = "NeulandCal2HitPar";
+
+    auto* cal_2_hit_par = dynamic_cast<R3B::Neuland::Cal2HitPar*>(run->GetRuntimeDb()->getContainer(containerName));
 
     const auto neulandEngines = std::map<std::pair<const std::string, const std::string>,
                                          std::function<std::unique_ptr<Digitizing::DigitizingEngineInterface>()>>{
