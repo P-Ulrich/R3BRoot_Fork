@@ -25,11 +25,13 @@ namespace R3B::Digitizing::Neuland
     NeulandPaddle::NeulandPaddle(uint16_t paddleID)
         : Digitizing::Paddle(paddleID, SignalCouplingNeuland)
     {
+        LOG(info) << "NeulandPaddle: Using constructor 1" << std::endl;
     }
 
     NeulandPaddle::NeulandPaddle(uint16_t paddleID, R3B::Neuland::Cal2HitPar* cal_to_hit_par)
-        : NeulandPaddle(paddleID)
+        : Digitizing::Paddle(paddleID, SignalCouplingNeuland)
     {
+        LOG(info) << "NeulandPaddle: Using constructor 2" << std::endl;
         const auto& module_par = cal_to_hit_par->GetModulePars().at(paddleID);
         effective_speed_ = module_par.effectiveSpeed.value;
         gAttenuation_ = module_par.lightAttenuationFactor.value;
@@ -37,8 +39,8 @@ namespace R3B::Digitizing::Neuland
         time_sync_ = module_par.tSync.value;
     }
 
-    auto NeulandPaddle::MatchSignals(const Channel::Signal& firstSignal, const Channel::Signal& secondSignal) const
-        -> float
+    auto NeulandPaddle::MatchSignals(const Channel::Signal& firstSignal,
+                                     const Channel::Signal& secondSignal) const -> float
     {
         auto firstE = static_cast<Float_t>(firstSignal.qdcUnSat);
         auto secondE = static_cast<Float_t>(secondSignal.qdcUnSat);
@@ -72,7 +74,8 @@ namespace R3B::Digitizing::Neuland
     inline auto NeulandPaddle::ComputeTime(const Channel::Signal& firstSignal,
                                            const Channel::Signal& secondSignal) const -> double
     {
-        return (firstSignal.tdc + secondSignal.tdc) / 2 - gHalfLength_ / effective_speed_ + time_sync_;
+        //LOG(info) << "ComputeTime: using eff_speed:" << effective_speed_ << std::endl;
+        return (firstSignal.tdc + secondSignal.tdc) / 2 - gHalfLength_ / effective_speed_ - time_sync_;
     }
 
     inline auto NeulandPaddle::ComputePosition(const Channel::Signal& leftSignal,
@@ -91,19 +94,25 @@ namespace R3B::Digitizing::Neuland
 
     auto NeulandPaddle::ComputeChannelHits(const Hit& hit) const -> Paddle::Pair<Channel::Hit>
     {
-        auto rightChannelHit = GenerateChannelHit(hit.time, hit.LightDep, hit.DistToPaddleCenter);
-        auto leftChannelHit = GenerateChannelHit(hit.time, hit.LightDep, -1 * hit.DistToPaddleCenter);
+        auto channel_side_right = ChannelSide{ ChannelSide::right };
+        auto channel_side_left = ChannelSide{ ChannelSide::left };
+        auto rightChannelHit = GenerateChannelHit(hit.time, hit.LightDep, hit.DistToPaddleCenter, channel_side_right);
+        auto leftChannelHit =
+            GenerateChannelHit(hit.time, hit.LightDep, -1 * hit.DistToPaddleCenter, channel_side_left);
         return { leftChannelHit, rightChannelHit };
     }
 
-    auto NeulandPaddle::GenerateChannelHit(const double mcTime, const double mcLight, const double dist) const
-        -> const Channel::Hit
+    auto NeulandPaddle::GenerateChannelHit(const double mcTime,
+                                           const double mcLight,
+                                           const double dist,
+                                           enum ChannelSide channel_side) const -> Channel::Hit
     {
-        //Paula: is this correct?
-        auto mcTime_= mcTime + time_sync_;
-        auto dist_ = dist + time_offset_ * gCMedium_ * 0.5;
-        auto time = mcTime_ + (NeulandPaddle::gHalfLength_ - dist) / effective_speed_;
-        auto light = mcLight * std::exp(-NeulandPaddle::gAttenuation_ * (NeulandPaddle::gHalfLength_ - dist_));
+        auto light = double{ mcLight * std::exp(-NeulandPaddle::gAttenuation_ * (NeulandPaddle::gHalfLength_ - dist)) };
+        int site_sign = (channel_side == ChannelSide::right) ? 1 : -1;
+
+        auto time = double{ mcTime + (NeulandPaddle::gHalfLength_ - dist) / effective_speed_ +
+                            site_sign * time_offset_ * 0.5 + time_sync_ };
+
         return { time, light };
     }
 

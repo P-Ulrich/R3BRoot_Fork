@@ -46,7 +46,7 @@ namespace R3B::Digitizing::Neuland::Tamex
             par.fPMTThresh = module_par.PMTThreshold.get(side).value;
             par.fQdcMin = 1 / par.fEnergyGain;
 
-            //TODO: Add other parameters:
+            // TODO: Add other parameters:
         }
     } // namespace
 
@@ -142,12 +142,15 @@ namespace R3B::Digitizing::Neuland::Tamex
 
     void Channel::AttachToPaddle(Digitizing::Paddle* paddle)
     {
+
+        LOG(info) << "AttachToPaddle: used";
         if (paddle == nullptr)
         {
             return;
         }
         if (CheckPaddleIDInHitPar())
         {
+            LOG(info) << "set_par_with_hit_module_par: used";
             const auto& module_par = neuland_hit_par_->GetModuleParAt(paddle->GetPaddleID());
             set_par_with_hit_module_par(par_, module_par, GetSide());
         }
@@ -371,6 +374,7 @@ namespace R3B::Digitizing::Neuland::Tamex
 
     auto Channel::ConstructSignals() -> Signals
     {
+        LOG(info) << "  Channel::ConstructSignals: used" << std::endl;
         fqt_peaks_ = ConstructFQTPeaks(pmt_peaks_);
         // signal pileup:
         FQTPeakPileUp(fqt_peaks_);
@@ -439,6 +443,7 @@ namespace R3B::Digitizing::Neuland::Tamex
         if (par_.fExperimentalDataIsCorrectedForSaturation)
         {
             qdc = qdc / (1 - par_.fSaturationCoefficient * qdc);
+            LOG(info) << "ToUnSatQdc: fSaturationCoefficient = " << par_.fSaturationCoefficient << std::endl;
         }
         // Apply reverse attenuation
         return qdc;

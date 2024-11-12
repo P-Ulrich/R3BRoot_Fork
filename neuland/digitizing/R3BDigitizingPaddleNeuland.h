@@ -55,7 +55,10 @@ namespace R3B::Digitizing::Neuland
                                                         const Channel::Signals& firstSignals,
                                                         const Channel::Signals& secondSignals)
             -> std::vector<ChannelSignalPair>;
-        auto GenerateChannelHit(double mcTime, double mcLight, double dist) const -> const Channel::Hit;
+        auto GenerateChannelHit(double mcTime,
+                                double mcLight,
+                                double dist,
+                                enum ChannelSide channel_side) const -> Channel::Hit;
 
       private:
         // Paula: non static member variables, are not used in TacQuila

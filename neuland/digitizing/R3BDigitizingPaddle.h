@@ -39,20 +39,20 @@ namespace R3B::Digitizing
         double energy{};
         double time{};
         double position{};
-        Channel::Signal leftChannel{};
-        Channel::Signal rightChannel{};
-        Channel::CalSignal leftChannelCal{};
-        Channel::CalSignal rightChannelCal{};
+        const Channel::Signal* leftChannel{};
+        const Channel::Signal* rightChannel{};
+        const Channel::CalSignal* leftChannelCal{};
+        const Channel::CalSignal* rightChannelCal{};
 
-        explicit PaddleSignal(LRPair<const Channel::CalSignal&> p_signals)
-            : leftChannelCal{ p_signals.left }
-            , rightChannelCal{ p_signals.right }
+        explicit PaddleSignal(LRPair< std::reference_wrapper<const Channel::CalSignal>> p_signals)
+            : leftChannelCal{ &p_signals.left.get() }
+            , rightChannelCal{ &p_signals.right.get() }
         {
         }
 
-        explicit PaddleSignal(LRPair<const Channel::Signal&> p_signals)
-            : leftChannel{ p_signals.left }
-            , rightChannel{ p_signals.right }
+        explicit PaddleSignal(LRPair<std::reference_wrapper<const Channel::Signal>> p_signals)
+            : leftChannel{ &p_signals.left.get() }
+            , rightChannel{ &p_signals.right.get() }
         {
         }
     };

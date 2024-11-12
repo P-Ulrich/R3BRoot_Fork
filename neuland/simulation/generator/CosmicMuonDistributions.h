@@ -22,7 +22,7 @@ namespace R3B::Neuland
         };
 
       private:
-        double mean_{ 30. };
+        double mean_{ 300. };
         double sigma_{ 2. };
     };
 

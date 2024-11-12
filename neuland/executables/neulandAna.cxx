@@ -144,6 +144,8 @@ auto main(int argc, char** argv) -> int
 
     run->GetRuntimeDb()->addContainer(hit_par.release());
 
+    LOG(info) << "before neulandEngines" << std::endl;
+
     const auto neulandEngines = std::map<std::pair<const std::string, const std::string>,
                                          std::function<std::unique_ptr<Digitizing::DigitizingEngineInterface>()>>{
         { { "neuland", "tamex" },
@@ -151,11 +153,13 @@ auto main(int argc, char** argv) -> int
           {
               if (customPara.value())
               {
+                  LOG(info) << "using Custom Params" << std::endl;
                   return Digitizing::CreateEngine(
                       UsePaddle<NeulandPaddle>(hit_par_ptr),
                       UseChannel<TamexChannel>(pileup_strategy, tamexParameter, hit_par_ptr));
               }
 
+              LOG(info) << "not using Custom Params" << std::endl;
               return Digitizing::CreateEngine(UsePaddle<NeulandPaddle>(),
                                               UseChannel<TamexChannel>(pileup_strategy, tamexParameter));
           } },

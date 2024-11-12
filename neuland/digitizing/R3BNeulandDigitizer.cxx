@@ -11,10 +11,10 @@
  * or submit itself to any jurisdiction.                                      *
  ******************************************************************************/
 
+#include "R3BNeulandDigitizer.h"
 #include "FairRootManager.h"
 #include "FairRunAna.h"
 #include "FairRuntimeDb.h"
-#include "R3BNeulandDigitizer.h"
 #include <R3BShared.h>
 #include <TFile.h>
 #include <iostream>
@@ -34,6 +34,8 @@ R3BNeulandDigitizer::R3BNeulandDigitizer(std::unique_ptr<Digitizing::DigitizingE
 
 void R3BNeulandDigitizer::SetEngine(std::unique_ptr<Digitizing::DigitizingEngineInterface> engine)
 {
+
+    LOG(info) << "SetEngine: fDigitizingEngine moved";
     fDigitizingEngine = std::move(engine);
 }
 
@@ -105,7 +107,7 @@ void R3BNeulandDigitizer::Exec(Option_t* /*option*/)
             fDigitizingEngine->DepositLight(paddleID, point.GetTime(), point.GetLightYield() * GeVToMeVFac, dist);
             paddleEnergyDeposit[paddleID] += point.GetEnergyLoss() * GeVToMeVFac;
         } // eloss
-    }     // points
+    } // points
 
     const Double_t triggerTime = fDigitizingEngine->GetTriggerTime();
     const auto paddles = fDigitizingEngine->ExtractPaddles();
@@ -138,11 +140,11 @@ void R3BNeulandDigitizer::Exec(Option_t* /*option*/)
             const TVector3 hitPixel = fNeulandGeoPar->ConvertGlobalToPixel(hitPositionGlobal);
 
             R3BNeulandHit hit(paddleID,
-                              signal.leftChannel.tdc,
-                              signal.rightChannel.tdc,
+                              signal.leftChannel->tdc,
+                              signal.rightChannel->tdc,
                               signal.time,
-                              signal.leftChannel.qdcUnSat,
-                              signal.rightChannel.qdcUnSat,
+                              signal.leftChannel->qdcUnSat,
+                              signal.rightChannel->qdcUnSat,
                               signal.energy,
                               hitPositionGlobal,
                               hitPixel);
@@ -153,11 +155,11 @@ void R3BNeulandDigitizer::Exec(Option_t* /*option*/)
                 LOG(debug) << "Adding neuland hit with id = " << paddleID << ", time = " << signal.time
                            << ", energy = " << signal.energy;
                 LOG(debug) << "Adding neuland hit with id = " << paddleID
-                           << ", tot_l = " << signal.leftChannel.qdcUnSat * 15 + 14
-                           << ", tot_r = " << signal.rightChannel.qdcUnSat * 15 + 14;
+                           << ", tot_l = " << signal.leftChannel->qdcUnSat * 15 + 14
+                           << ", tot_r = " << signal.rightChannel->qdcUnSat * 15 + 14;
             }
         } // loop over all hits for each paddle
-    }     // loop over paddles
+    } // loop over paddles
 
     if (is_cal_output_)
     {
@@ -197,7 +199,7 @@ void R3BNeulandDigitizer::fill_cal_data(const std::map<int, std::unique_ptr<R3B:
                            << right.tot << std::endl;
             }
         } // loop over all hits for each paddle
-    }     // loop over paddles
+    } // loop over paddles
 
     LOG(debug) << "R3BNeulandDigitizerCalData: produced " << cal_hits.size() << " hits";
 }

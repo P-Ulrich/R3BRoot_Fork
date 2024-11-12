@@ -33,7 +33,7 @@ inline auto create_muon_generator(TRandom3& random_gen)
 
     // auto const mean = 3000.;
     // auto const sigma = 400.;
-    auto const mean = 10.;
+    auto const mean = 30.;
     auto const sigma = 0.2;
     energy_dist.set_mean_sigma(mean, sigma);
 
