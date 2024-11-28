@@ -62,7 +62,7 @@ void R3BNeulandDigitizer::SetParContainers()
     fDigitizingEngine->Init();
 }
 
-InitStatus R3BNeulandDigitizer::Init()
+auto R3BNeulandDigitizer::Init() -> InitStatus
 {
     fPoints.init();
     fHits.init();

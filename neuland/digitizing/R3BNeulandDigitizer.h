@@ -21,9 +21,7 @@
 #include "R3BDigitizingTamex.h"
 #include "R3BNeulandGeoPar.h"
 #include "R3BNeulandHit.h"
-#include "R3BNeulandHitPar.h"
 #include "R3BNeulandPoint.h"
-#include "TCAConnector.h"
 #include <R3BIOConnector.h>
 #include <TClonesArray.h>
 #include <TH1.h>
@@ -49,7 +47,7 @@ namespace Digitizing = R3B::Digitizing;
 class R3BNeulandDigitizer : public FairTask
 {
   public:
-    enum class Options
+    enum class Options : uint8_t
     {
         neulandTamex,
         neulandTacquila
@@ -68,25 +66,18 @@ class R3BNeulandDigitizer : public FairTask
     ~R3BNeulandDigitizer() override = default;
 
     // No copy and no move is allowed (Rule of three/five)
-    R3BNeulandDigitizer(const R3BNeulandDigitizer&) = delete;            // copy constructor
-    R3BNeulandDigitizer(R3BNeulandDigitizer&&) = delete;                 // move constructor
-    R3BNeulandDigitizer& operator=(const R3BNeulandDigitizer&) = delete; // copy assignment
-    R3BNeulandDigitizer& operator=(R3BNeulandDigitizer&&) = delete;      // move assignment
+    R3BNeulandDigitizer(const R3BNeulandDigitizer&) = delete;                    // copy constructor
+    R3BNeulandDigitizer(R3BNeulandDigitizer&&) = delete;                         // move constructor
+    auto operator=(const R3BNeulandDigitizer&) -> R3BNeulandDigitizer& = delete; // copy assignment
+    auto operator=(R3BNeulandDigitizer&&) -> R3BNeulandDigitizer& = delete;      // move assignment
 
-  protected:
-    InitStatus Init() override;
-    void Finish() override;
-    void SetParContainers() override;
-
-  public:
-    void Exec(Option_t* /*option*/) override;
     void SetEngine(std::unique_ptr<Digitizing::DigitizingEngineInterface> engine);
     void AddFilter(const Filterable<R3BNeulandHit&>::Filter& filter) { fHitFilters.Add(filter); }
     void AddFilterCal(const Filterable<R3B::Neuland::SimCalData&>::Filter& filter) { fCalHitFilters.Add(filter); }
 
     // Paula:Flag for CalData
     void EnableCalDataOutput(bool calc_cal) { is_cal_output_ = calc_cal; }
-    auto HasCalDataOutput() -> bool { return is_cal_output_; }
+    [[nodiscard]] auto HasCalDataOutput() const -> bool { return is_cal_output_; }
 
   private:
     // Paula:Flag for CalData
@@ -109,6 +100,11 @@ class R3BNeulandDigitizer : public FairTask
     TH1F* hRLTimeToTrig = nullptr;
 
     void fill_cal_data(const std::map<int, std::unique_ptr<R3B::Digitizing::Paddle>>& paddles);
+
+    auto Init() -> InitStatus override;
+    void Finish() override;
+    void SetParContainers() override;
+    void Exec(Option_t* /*option*/) override;
 
   public:
     template <typename... Args>

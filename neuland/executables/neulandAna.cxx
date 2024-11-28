@@ -27,6 +27,7 @@
 #include "R3BProgramOptions.h"
 #include "TRandom3.h"
 #include "TStopwatch.h"
+#include <R3BNeulandSimCalToCal.h>
 #include <TObjString.h>
 #include <boost/program_options.hpp>
 
@@ -181,6 +182,10 @@ auto main(int argc, char** argv) -> int
     digiNeuland->EnableCalDataOutput(calData.value());
     digiNeuland->SetEngine((neulandEngines.at({ paddleName(), channelName() }))());
     run->AddTask(digiNeuland.release());
+
+    auto cal_data_converter = std::make_unique<R3B::Neuland::SimCal2Cal>();
+    run->AddTask(cal_data_converter.release());
+
     auto hitmon = std::make_unique<R3BNeulandHitMon>();
     run->AddTask(hitmon.release());
 

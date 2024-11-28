@@ -11,8 +11,11 @@
 # granted to it by virtue of its status as an Intergovernmental Organization #
 # or submit itself to any jurisdiction.                                      #
 ##############################################################################
+# cmake-format: on
+
 set(SRCS
     # cmake-format: sortable
+    Muon/R3BNeulandDigitizerCalData.cxx
     R3BDigitizingChannel.cxx
     R3BDigitizingChannelMock.h
     R3BDigitizingPaddle.cxx
@@ -22,10 +25,11 @@ set(SRCS
     R3BDigitizingTamex.cxx
     R3BNeulandDigitizer.cxx
     R3BNeulandHitMon.cxx
-    Muon/R3BNeulandDigitizerCalData.cxx)
+    R3BNeulandSimCalToCal.cxx)
 
 set(HEADERS
     # cmake-format: sortable
+    Muon/R3BNeulandDigitizerCalData.h
     R3BDigitizingChannel.h
     R3BDigitizingChannelMock.h
     R3BDigitizingEngine.h
@@ -36,7 +40,7 @@ set(HEADERS
     R3BDigitizingTamex.h
     R3BNeulandDigitizer.h
     R3BNeulandHitMon.h
-    Muon/R3BNeulandDigitizerCalData.h)
+    R3BNeulandSimCalToCal.h)
 
 add_library_with_dictionary(
     LIBNAME
