@@ -21,6 +21,26 @@ namespace R3B::Neuland
     void SimCal2Cal::convert(const std::vector<R3B::Neuland::SimCalData>& sim_cal_data,
                              std::vector<BarCalData>& cal_data)
     {
-        // TODO: Implement conversion here.
+        bar_map_data_.clear();
+        for (const auto& sim_data : sim_cal_data)
+        {
+            auto module_id = sim_data.bar_module;
+            auto [iter, _] = bar_map_data_.try_emplace(module_id, static_cast<unsigned int>(module_id));
+
+            auto left_signal = CalDataSignal{};
+            left_signal.leading_time = ValueError<double>{ sim_data.let_l, 0 };
+            left_signal.time_over_threshold = ValueError<double>{ sim_data.tot_l, 0 };
+
+            auto right_signal = CalDataSignal{};
+            right_signal.leading_time = ValueError<double>{ sim_data.let_r, 0 };
+            right_signal.time_over_threshold = ValueError<double>{ sim_data.tot_r, 0 };
+
+            auto& obj = iter->second;
+            obj.left.push_back(left_signal);
+            obj.right.push_back(left_signal);
+        }
+        for(const auto& pair : bar_map_data_) {
+            cal_data.push_back(pair.second);
+        }
     }
 } // namespace R3B::Neuland

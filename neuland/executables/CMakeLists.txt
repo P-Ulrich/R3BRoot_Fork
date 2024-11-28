@@ -12,8 +12,8 @@ endif()
 add_executable(neulandAna neulandAna.cxx)
 target_link_libraries(neulandAna PRIVATE R3BNeulandDigitizing)
 
-add_executable(neulandMuon neulandMuon.cxx)
-target_link_libraries(neulandMuon PRIVATE R3BNeulandDigitizing)
+# add_executable(neulandMuon neulandMuon.cxx)
+# target_link_libraries(neulandMuon PRIVATE R3BNeulandDigitizing)
 
 if(CONAN_ENABLED)
     add_executable(neuland_lmd_to_map neuland_lmd_to_map.cxx)

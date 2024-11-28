@@ -71,6 +71,7 @@ auto main(int argc, char** argv) -> int
 
     // Paula:digi option for Caldata
     auto calData = programOptions.create_option<bool>("calData", "Doing CalData calculations", true);
+    auto calDataOutput = programOptions.create_option<bool>("calDataOutput", "Output CalData2 instead of SimCalData", false);
 
     auto customPara = programOptions.create_option<bool>("customPar", "Custom parameter for CalDataAnalysis", false);
     if (!programOptions.verify(argc, argv))
@@ -183,8 +184,10 @@ auto main(int argc, char** argv) -> int
     digiNeuland->SetEngine((neulandEngines.at({ paddleName(), channelName() }))());
     run->AddTask(digiNeuland.release());
 
+    if(calDataOutput.value()){
     auto cal_data_converter = std::make_unique<R3B::Neuland::SimCal2Cal>();
     run->AddTask(cal_data_converter.release());
+    }
 
     auto hitmon = std::make_unique<R3BNeulandHitMon>();
     run->AddTask(hitmon.release());

@@ -56,6 +56,9 @@ auto main(int argc, char** argv) -> int
     auto min_stat =
         programOptions.create_option<int>("min-stat,m", "set minimun statistics for calibration", DEFAULT_MIN_STAT);
     auto run_num = programOptions.create_option<int>("runNum,r", "set the number of runs", 1);
+    // Paula: additional flag
+
+    auto disable_task = programOptions.create_option<bool>("MapToCal", "enable MapToCal task", false);
 
     if (!programOptions.verify(argc, argv))
     {
@@ -96,12 +99,15 @@ auto main(int argc, char** argv) -> int
         run->SetSink(sink.release());
 
         // Add analysis task --------------------------------------------------------
-        auto runIdTask = std::make_unique<R3BEventHeaderPropagator>();
-        run->AddTask(runIdTask.release());
 
-        auto map2Cal = std::make_unique<R3B::Neuland::Map2CalTask>();
-        map2Cal->SetTrigger(R3B::Neuland::CalTrigger::all);
-        run->AddTask(map2Cal.release());
+        if (disable_task.value())
+        {
+            auto runIdTask = std::make_unique<R3BEventHeaderPropagator>();
+            run->AddTask(runIdTask.release());
+            auto map2Cal = std::make_unique<R3B::Neuland::Map2CalTask>();
+            map2Cal->SetTrigger(R3B::Neuland::CalTrigger::all);
+            run->AddTask(map2Cal.release());
+        }
 
         auto cal2hit_method =
             (enable_mille.value()) ? R3B::Neuland::Cal2HitParMethod::Millipede : R3B::Neuland::Cal2HitParMethod::LSQT;
