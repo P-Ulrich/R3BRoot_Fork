@@ -60,7 +60,14 @@ namespace R3B::Neuland
             engine_->AddSignal(bar_signal);
         }
         auto* eventHeader = GetEventHeader();
-        engine_->EndOfEvent(eventHeader->GetEventno());
+        if (eventHeader == nullptr)
+        {
+            engine_->EndOfEvent(0);
+        }
+        else
+        {
+            engine_->EndOfEvent(eventHeader->GetEventno());
+        }
     }
 
     void Cal2HitParTask::EndOfTask()

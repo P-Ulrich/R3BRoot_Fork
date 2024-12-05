@@ -41,7 +41,9 @@ namespace R3B::Neuland
             if (eventHeader_ = dynamic_cast<R3BEventHeader*>(rootMan->GetObject("EventHeader."));
                 eventHeader_ == nullptr)
             {
-                throw R3B::logic_error("R3BEventHeader is nullptr!");
+                // throw R3B::logic_error("R3BEventHeader is nullptr!");
+                // TODO: adapt for simulation event header
+                R3BLOG(warn, "R3BEventHeader is nullptr!");
             }
 
             check_input_par();

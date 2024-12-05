@@ -62,6 +62,8 @@ auto main(int argc, char** argv) -> int
         programOptions.create_option<std::string>("paraFile", "set the filename of parameter sink", "para.root");
     auto paraFileName2 =
         programOptions.create_option<std::string>("paraFile2", "set the filename of the second parameter sink", "");
+    auto par_output =
+        programOptions.create_option<std::string>("par-out", "set the filename of the output parameter", "");
     auto digiFileName =
         programOptions.create_option<std::string>("digiFile", "set the filename of digitization output", "digi.root");
     auto logLevel = programOptions.create_option<std::string>("logLevel,v", "set log level of fairlog", "error");
@@ -71,7 +73,8 @@ auto main(int argc, char** argv) -> int
 
     // Paula:digi option for Caldata
     auto calData = programOptions.create_option<bool>("calData", "Doing CalData calculations", true);
-    auto calDataOutput = programOptions.create_option<bool>("calDataOutput", "Output CalData2 instead of SimCalData", false);
+    auto calDataOutput =
+        programOptions.create_option<bool>("calDataOutput", "Output CalData2 instead of SimCalData", false);
 
     auto customPara = programOptions.create_option<bool>("customPar", "Custom parameter for CalDataAnalysis", false);
     if (!programOptions.verify(argc, argv))
@@ -128,9 +131,14 @@ auto main(int argc, char** argv) -> int
     run->SetSource(filesource.release());
     run->SetSink(filesink.release());
 
+    auto* rtdb = run->GetRuntimeDb();
     auto fileio = std::make_unique<FairParRootFileIo>();
     fileio->open(paraFileName().c_str());
-    run->GetRuntimeDb()->setFirstInput(fileio.release());
+    rtdb->setFirstInput(fileio.release());
+
+    auto par_file_out = std::make_unique<FairParRootFileIo>(true);
+    par_file_out->open(par_output.value().c_str(), "RECREATE");
+    rtdb->setOutput(par_file_out.release());
 
     if (const auto& filename = paraFileName2(); not filename.empty())
     {
@@ -184,9 +192,10 @@ auto main(int argc, char** argv) -> int
     digiNeuland->SetEngine((neulandEngines.at({ paddleName(), channelName() }))());
     run->AddTask(digiNeuland.release());
 
-    if(calDataOutput.value()){
-    auto cal_data_converter = std::make_unique<R3B::Neuland::SimCal2Cal>();
-    run->AddTask(cal_data_converter.release());
+    if (calDataOutput.value())
+    {
+        auto cal_data_converter = std::make_unique<R3B::Neuland::SimCal2Cal>();
+        run->AddTask(cal_data_converter.release());
     }
 
     auto hitmon = std::make_unique<R3BNeulandHitMon>();
@@ -198,6 +207,7 @@ auto main(int argc, char** argv) -> int
     timer.Stop();
     auto* sink = run->GetSink();
     sink->Close();
-    std::cout << "Macro finished successfully." << std::endl;
-    std::cout << "Real time: " << timer.RealTime() << "s, CPU time: " << timer.CpuTime() << "s" << std::endl;
+    rtdb->writeContainers();
+    std::cout << "Macro finished successfully.\n";
+    std::cout << "Real time: " << timer.RealTime() << "s, CPU time: " << timer.CpuTime() << "s\n";
 }

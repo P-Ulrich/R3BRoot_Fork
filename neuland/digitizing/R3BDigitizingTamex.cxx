@@ -143,7 +143,7 @@ namespace R3B::Digitizing::Neuland::Tamex
     void Channel::AttachToPaddle(Digitizing::Paddle* paddle)
     {
 
-        LOG(info) << "AttachToPaddle: used";
+        LOG(debug) << "AttachToPaddle: used";
         if (paddle == nullptr)
         {
             return;
@@ -374,7 +374,7 @@ namespace R3B::Digitizing::Neuland::Tamex
 
     auto Channel::ConstructSignals() -> Signals
     {
-        LOG(info) << "  Channel::ConstructSignals: used" << std::endl;
+        LOG(debug) << "  Channel::ConstructSignals: used" << std::endl;
         fqt_peaks_ = ConstructFQTPeaks(pmt_peaks_);
         // signal pileup:
         FQTPeakPileUp(fqt_peaks_);
@@ -443,7 +443,7 @@ namespace R3B::Digitizing::Neuland::Tamex
         if (par_.fExperimentalDataIsCorrectedForSaturation)
         {
             qdc = qdc / (1 - par_.fSaturationCoefficient * qdc);
-            LOG(info) << "ToUnSatQdc: fSaturationCoefficient = " << par_.fSaturationCoefficient << std::endl;
+            LOG(debug) << "ToUnSatQdc: fSaturationCoefficient = " << par_.fSaturationCoefficient << std::endl;
         }
         // Apply reverse attenuation
         return qdc;

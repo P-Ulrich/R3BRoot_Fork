@@ -130,13 +130,13 @@ auto main(int argc, char** argv) -> int
 
         run->Init();
 
-        const auto error_scales = std::array{ 10.F };
-        for (const auto error_scale : error_scales)
-        {
-            cal2hitParTaskPtr->SetErrorScale(error_scale);
-            fmt::print("\nStarting run with error_scale {} ...\n\n", error_scale);
-            run->Run(0, event_num.value() <= 0 ? 0 : event_num.value());
-        }
+        // const auto error_scales = std::array{ 10.F };
+        // for (const auto error_scale : error_scales)
+        // {
+        //     cal2hitParTaskPtr->SetErrorScale(error_scale);
+        //     fmt::print("\nStarting run with error_scale {} ...\n\n", error_scale);
+        run->Run(0, event_num.value() <= 0 ? 0 : event_num.value());
+        // }
 
         timer.Stop();
         std::cout << "Cal level data written to file " << outputfile_path << "\n";
@@ -173,6 +173,7 @@ auto main(int argc, char** argv) -> int
     {
         sinkfile->Close();
     }
+    run->GetRuntimeDb()->writeContainers();
 
     return 0;
 }
