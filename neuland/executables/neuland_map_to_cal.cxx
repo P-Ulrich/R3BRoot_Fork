@@ -35,7 +35,7 @@
 #include <iostream>
 
 namespace fs = std::filesystem;
-constexpr int DEFAULT_EVENT_NUM = 10;
+constexpr int DEFAULT_EVENT_NUM = -1;
 constexpr int DEFAULT_RUN_ID = 999;
 constexpr int DEFAULT_MIN_STAT = 20;
 
