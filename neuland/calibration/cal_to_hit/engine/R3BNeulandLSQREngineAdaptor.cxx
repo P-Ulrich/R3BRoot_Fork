@@ -11,9 +11,9 @@
  * or submit itself to any jurisdiction.                                      *
  ******************************************************************************/
 
+#include "R3BNeulandLSQREngineAdaptor.h"
 #include "R3BDataMonitor.h"
 #include "R3BNeulandHitPar.h"
-#include "R3BNeulandLSQREngineAdaptor.h"
 #include <FairRuntimeDb.h>
 #include <R3BLogger.h>
 #include <R3BNeulandParDirCreator.h>

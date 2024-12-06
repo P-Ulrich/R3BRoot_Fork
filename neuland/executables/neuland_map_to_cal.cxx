@@ -58,7 +58,8 @@ auto main(int argc, char** argv) -> int
     auto run_num = programOptions.create_option<int>("runNum,r", "set the number of runs", 1);
     // Paula: additional flag
 
-    auto disable_task = programOptions.create_option<bool>("MapToCal", "enable MapToCal task", false);
+    auto disable_task = programOptions.create_option<bool>("no-map2cal", "disable MapToCal task", false);
+
 
     if (!programOptions.verify(argc, argv))
     {
@@ -100,7 +101,7 @@ auto main(int argc, char** argv) -> int
 
         // Add analysis task --------------------------------------------------------
 
-        if (disable_task.value())
+        if (not disable_task.value())
         {
             auto runIdTask = std::make_unique<R3BEventHeaderPropagator>();
             run->AddTask(runIdTask.release());

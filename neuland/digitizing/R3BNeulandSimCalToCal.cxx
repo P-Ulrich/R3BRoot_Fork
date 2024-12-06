@@ -49,7 +49,7 @@ namespace R3B::Neuland
 
             auto& obj = iter->second;
             obj.left.push_back(left_signal);
-            obj.right.push_back(left_signal);
+            obj.right.push_back(right_signal);
         }
         for (const auto& pair : bar_map_data_)
         {
