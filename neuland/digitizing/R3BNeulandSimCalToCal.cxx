@@ -1,12 +1,46 @@
-#include "R3BNeulandBasePar.h"
 #include "R3BNeulandSimCalToCal.h"
+
+#include <FairMCEventHeader.h>
+#include <R3BEventHeader.h>
+#include <R3BNeulandBasePar.h>
 
 namespace R3B::Neuland
 {
+    namespace
+    {
+        void convert_event_header(FairMCEventHeader* mc_header, R3BEventHeader* header)
+        {
+            header->SetRunId(mc_header->GetRunID());
+            header->SetEventno(mc_header->GetEventID());
+        }
+    } // namespace
+
     auto SimCal2Cal::Init() -> InitStatus
     {
         sim_cal_data_.init();
         cal_data_.init();
+        init_event_header();
+        init_base_par();
+        return kSUCCESS;
+    }
+
+    void SimCal2Cal::init_event_header()
+    {
+        auto* root_manager = FairRootManager::Instance();
+        if (event_header_ = dynamic_cast<R3BEventHeader*>(root_manager->GetObject("EventHeader."));
+            event_header_ == nullptr)
+        {
+            throw R3B::logic_error("Event header was not set before the init!");
+        }
+        if (mc_event_header_ = dynamic_cast<FairMCEventHeader*>(root_manager->GetObject("MCEventHeader."));
+            mc_event_header_ == nullptr)
+        {
+            throw R3B::logic_error("Cannot find MCEventHeader from the input simulated data file.");
+        }
+    }
+
+    void SimCal2Cal::init_base_par()
+    {
         auto* rtdb = FairRuntimeDb::instance();
         base_par_ = std::make_unique<CalibrationBasePar>().release();
         base_par_->set_num_of_planes(number_of_dp_ * 2);
@@ -14,7 +48,6 @@ namespace R3B::Neuland
         {
             throw R3B::runtime_error("Calibration parameter becomes nullptr!");
         }
-        return kSUCCESS;
     }
 
     void SimCal2Cal::Exec(Option_t* /*option*/)
@@ -23,6 +56,7 @@ namespace R3B::Neuland
         auto& cal_data = cal_data_.get();
         cal_data.clear();
 
+        convert_event_header(mc_event_header_, event_header_);
         convert(sim_cal_data, cal_data);
     }
 
@@ -56,4 +90,5 @@ namespace R3B::Neuland
             cal_data.push_back(pair.second);
         }
     }
+
 } // namespace R3B::Neuland

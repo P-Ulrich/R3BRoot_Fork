@@ -21,6 +21,7 @@
 #include "R3BDigitizingPaddleNeuland.h"
 #include "R3BDigitizingTacQuila.h"
 #include "R3BDigitizingTamex.h"
+#include "R3BEventHeader.h"
 #include "R3BFileSource2.h"
 #include "R3BNeulandDigitizer.h"
 #include "R3BNeulandHitMon.h"
@@ -122,6 +123,10 @@ auto main(int argc, char** argv) -> int
     auto filenames = R3B::GetFilesFromRegex(simuFileName());
 
     auto run = std::make_unique<FairRunAna>();
+
+    auto event_header = std::make_unique<R3BEventHeader>();
+    run->SetEventHeader(event_header.release());
+
     auto filesource = std::make_unique<R3BFileSource2>();
     for (auto filename : filenames)
     {

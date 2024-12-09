@@ -41,9 +41,7 @@ namespace R3B::Neuland
             if (eventHeader_ = dynamic_cast<R3BEventHeader*>(rootMan->GetObject("EventHeader."));
                 eventHeader_ == nullptr)
             {
-                // throw R3B::logic_error("R3BEventHeader is nullptr!");
-                // TODO: adapt for simulation event header
-                R3BLOG(warn, "R3BEventHeader is nullptr!");
+                throw R3B::logic_error("R3BEventHeader is required. But it's nullptr!");
             }
 
             check_input_par();
@@ -68,7 +66,8 @@ namespace R3B::Neuland
     void CalibrationTask::Exec(Option_t* /*option*/)
     {
         BeginOfEvent();
-        R3BLOG(debug, fmt::format("Event number: {}, tpat: {:016b}", eventHeader_->GetEventno(), eventHeader_->GetTpat()));
+        R3BLOG(debug,
+               fmt::format("Event number: {}, tpat: {:016b}", eventHeader_->GetEventno(), eventHeader_->GetTpat()));
         (is_hist_disabled_) ? execute_no_hist() : execute_with_hist();
     }
 

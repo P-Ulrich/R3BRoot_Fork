@@ -60,13 +60,13 @@ namespace R3B::Neuland
             engine_->AddSignal(bar_signal);
         }
         auto* eventHeader = GetEventHeader();
-        if (eventHeader == nullptr)
+        if (eventHeader != nullptr)
         {
-            engine_->EndOfEvent(0);
+            engine_->EndOfEvent(eventHeader->GetEventno());
         }
         else
         {
-            engine_->EndOfEvent(eventHeader->GetEventno());
+            throw R3B::runtime_error("Event header is nullptr!");
         }
     }
 

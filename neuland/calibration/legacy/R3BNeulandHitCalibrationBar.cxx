@@ -308,7 +308,6 @@ namespace R3B::Neuland // NOLINT
                                       const UInt_t eventNumber)
         {
 
-            std::cout << "?????????????????Passing here \n";
             // If we have already a gain calibration, we can log the hits.
             // This way we might get some information about strange behaviour.
             if (IsStatus(Validity, EnergyCalibrationBit))
@@ -363,11 +362,8 @@ namespace R3B::Neuland // NOLINT
             CurrentHit.ExitPosition = exitPosition;
             CurrentHit.Energy = energy;
 
-            std::cout << "?????????????????LastHits before :" << LastHits.size() << " \n";
-
             LastHits.push_back(CurrentHit);
 
-            std::cout << "?????????????????LastHits after :" << LastHits.size() << " \n";
             if (LastHits.size() % PositionCalibrationSize == 0)
                 positionCalibration(LastHits.size() - PositionCalibrationSize, PositionCalibrationSize);
 
@@ -401,7 +397,6 @@ namespace R3B::Neuland // NOLINT
 
         void HitCalibrationBar::Calibrate(TDirectory* histogramDir)
         {
-            std::cout << "?????????????????LastHits after 1:" << LastHits.size() << " \n";
             const auto nHits = (IsStatus(Validity, LogCompleteBit) ? CalibrationLogSize : LastHits.size());
 
             // Check if we have any Hits at all.
@@ -465,7 +460,6 @@ namespace R3B::Neuland // NOLINT
             // Threshold Calibration
             thresholdCalibration();
 
-            std::cout << "?????????????????LastHits after 2:" << LastHits.size() << " \n";
             createHistograms(histogramDir);
         }
 
@@ -509,7 +503,6 @@ namespace R3B::Neuland // NOLINT
         void HitCalibrationBar::positionCalibration(int firstHit, int nHits)
         {
             FitGraph.Set(0);
-            std::cout << "?????????????????LastHits after 3:" << LastHits.size() << " \n";
             const auto loopSize = (LastHits.size() >= (firstHit + nHits)) ? nHits : (LastHits.size() - firstHit);
             for (auto index = 0; index < loopSize; ++index)
             {
@@ -536,7 +529,6 @@ namespace R3B::Neuland // NOLINT
             Log.EffectiveSpeed.SetPoint(nPoints, LastEventNumber, EffectiveSpeed);
             Log.EffectiveSpeed.SetPointError(nPoints, 0, linearFit.GetParError(1) * Sqr(EffectiveSpeed));
 
-            std::cout << "?????????????????LastHits after 4:" << LastHits.size() << " \n";
             SetStatus(Validity, PosCalibrationBit);
         }
 
@@ -750,7 +742,6 @@ namespace R3B::Neuland // NOLINT
             if (!histogramDir)
                 return;
 
-            std::cout << "?????????????????LastHits after 5:" << LastHits.size() << " \n";
             // First creat all the histograms we do not have yet.
             const auto nHits = (IsStatus(Validity, LogCompleteBit) ? CalibrationLogSize : LastHits.size());
 
@@ -878,8 +869,6 @@ namespace R3B::Neuland // NOLINT
                 delete overlayPads[side];
                 delete overlayAxis[side];
             }
-
-            std::cout << "?????????????????LastHits after 6:" << LastHits.size() << " \n";
         }
 
         Double_t HitCalibrationBar::getMean(const TGraphErrors& graph, Double_t expectedValue)
